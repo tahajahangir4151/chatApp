@@ -11,11 +11,11 @@ export const accessChat = asyncHandler(async (req, res) => {
     return res.sendStatus(400);
   }
 
-  var isChat = Chat.find({
+  var isChat = await Chat.find({
     isGroupChat: false,
     $and: [
-      { user: { elemMatch: { $eq: req.user._id } } },
-      { user: { elemMatch: { $eq: userId } } },
+      { users: { $elemMatch: { $eq: req.user._id } } },
+      { users: { $elemMatch: { $eq: userId } } },
     ],
   })
     .populate("users", "-password")
@@ -42,8 +42,7 @@ export const accessChat = asyncHandler(async (req, res) => {
         "-password"
       );
 
-      res.status(200);
-      res.send(fullChat);
+      res.status(200).send(fullChat);
     } catch (error) {
       res.status(400);
       throw new Error(error.message);
@@ -53,18 +52,20 @@ export const accessChat = asyncHandler(async (req, res) => {
 
 export const fetchAllChats = asyncHandler(async (req, res) => {
   try {
-    Chat.find({ users: { $elemMatch: { $eq: req.user._id } } })
+    let results = await Chat.find({
+      users: { $elemMatch: { $eq: req.user._id } },
+    })
       .populate("users", "-password")
       .populate("groupAdmin", "-password")
       .populate("latestMessage")
-      .sort({ updatedAt: -1 })
-      .then(async (results) => {
-        results = await User.populate(results, {
-          path: "latestMessage.sender",
-          select: "name pic email",
-        });
-        res.status(200).send(results);
-      });
+      .sort({ updatedAt: -1 });
+
+    results = await User.populate(results, {
+      path: "latestMessage.sender",
+      select: "name pic email",
+    });
+
+    res.status(200).send(results);
   } catch (error) {
     res.status(400);
     throw new Error(error.message);
@@ -81,13 +82,14 @@ export const createGroupChat = asyncHandler(async (req, res) => {
   if (users.length < 2) {
     return res
       .status(400)
-      .send({ message: "More than 2 users are required t0 form a group chat" });
+      .send({ message: "More than 2 users are required to form a group chat" });
   }
   users.push(req.user);
 
   try {
     const groupChat = await Chat.create({
       chatName: req.body.name,
+      description: req.body.description || "",
       users: users,
       isGroupChat: true,
       groupAdmin: req.user,
@@ -153,8 +155,6 @@ export const addUserToGroup = asyncHandler(async (req, res) => {
 export const removeFromGroup = asyncHandler(async (req, res) => {
   const { chatId, userId } = req.body;
 
-  // check if the requester is admin
-
   const removed = await Chat.findByIdAndUpdate(
     chatId,
     {
@@ -173,4 +173,96 @@ export const removeFromGroup = asyncHandler(async (req, res) => {
   } else {
     res.json(removed);
   }
+});
+
+//@description     Toggle Pin chat
+//@route           PUT /api/chat/pin
+//@access          Protected
+export const togglePinChat = asyncHandler(async (req, res) => {
+  const { chatId } = req.body;
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    res.status(404);
+    throw new Error("Chat not found");
+  }
+
+  const isPinned = chat.pinnedBy?.includes(req.user._id);
+  const updatedChat = await Chat.findByIdAndUpdate(
+    chatId,
+    isPinned
+      ? { $pull: { pinnedBy: req.user._id } }
+      : { $addToSet: { pinnedBy: req.user._id } },
+    { new: true }
+  )
+    .populate("users", "-password")
+    .populate("groupAdmin", "-password")
+    .populate("latestMessage");
+
+  res.json(updatedChat);
+});
+
+//@description     Toggle Mute chat
+//@route           PUT /api/chat/mute
+//@access          Protected
+export const toggleMuteChat = asyncHandler(async (req, res) => {
+  const { chatId } = req.body;
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    res.status(404);
+    throw new Error("Chat not found");
+  }
+
+  const isMuted = chat.mutedBy?.includes(req.user._id);
+  const updatedChat = await Chat.findByIdAndUpdate(
+    chatId,
+    isMuted
+      ? { $pull: { mutedBy: req.user._id } }
+      : { $addToSet: { mutedBy: req.user._id } },
+    { new: true }
+  )
+    .populate("users", "-password")
+    .populate("groupAdmin", "-password")
+    .populate("latestMessage");
+
+  res.json(updatedChat);
+});
+
+//@description     Toggle Favorite chat
+//@route           PUT /api/chat/favorite
+//@access          Protected
+export const toggleFavoriteChat = asyncHandler(async (req, res) => {
+  const { chatId } = req.body;
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    res.status(404);
+    throw new Error("Chat not found");
+  }
+
+  const isFavorite = chat.favorites?.includes(req.user._id);
+  const updatedChat = await Chat.findByIdAndUpdate(
+    chatId,
+    isFavorite
+      ? { $pull: { favorites: req.user._id } }
+      : { $addToSet: { favorites: req.user._id } },
+    { new: true }
+  )
+    .populate("users", "-password")
+    .populate("groupAdmin", "-password")
+    .populate("latestMessage");
+
+  res.json(updatedChat);
+});
+
+//@description     Clear messages in a chat for current user
+//@route           DELETE /api/chat/:chatId/clear
+//@access          Protected
+export const clearChatMessages = asyncHandler(async (req, res) => {
+  const { chatId } = req.params;
+
+  await Message.updateMany(
+    { chat: chatId },
+    { $addToSet: { deletedFor: req.user._id } }
+  );
+
+  res.json({ success: true, message: "Chat messages cleared" });
 });

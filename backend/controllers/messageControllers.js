@@ -21,10 +21,20 @@ export const allMessages = asyncHandler(async (req, res) => {
       }
     );
 
-    const messages = await Message.find({ chat: req.params.chatId })
+    const messages = await Message.find({
+      chat: req.params.chatId,
+      deletedFor: { $ne: req.user._id },
+    })
       .populate("sender", "name pic email")
       .populate("chat")
-      .populate("reactions.user", "name pic");
+      .populate("reactions.user", "name pic")
+      .populate({
+        path: "replyTo",
+        populate: {
+          path: "sender",
+          select: "name pic",
+        },
+      });
 
     res.json(messages);
   } catch (error) {
@@ -37,7 +47,8 @@ export const allMessages = asyncHandler(async (req, res) => {
 //@route           POST /api/Message/
 //@access          Protected
 export const sendMessage = asyncHandler(async (req, res) => {
-  const { content, chatId, mediaType, fileUrl, fileName, fileSize } = req.body;
+  const { content, chatId, mediaType, fileUrl, fileName, fileSize, replyTo } =
+    req.body;
 
   if ((!content && !fileUrl) || !chatId) {
     console.log("Invalid data passed into request");
@@ -46,9 +57,15 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
   let determinedMediaType = mediaType || "text";
   if (fileUrl && (!mediaType || mediaType === "text")) {
-    determinedMediaType = fileUrl.match(/\.(mp4|webm|ogg|mov|mkv)$/i)
-      ? "video"
-      : "image";
+    if (fileUrl.match(/\.(mp4|webm|ogg|mov|mkv)$/i)) {
+      determinedMediaType = "video";
+    } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac)$/i)) {
+      determinedMediaType = "audio";
+    } else if (fileUrl.match(/\.(pdf|doc|docx|txt|zip|xls|xlsx)$/i)) {
+      determinedMediaType = "file";
+    } else {
+      determinedMediaType = "image";
+    }
   }
 
   const newMessage = {
@@ -59,6 +76,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     fileUrl: fileUrl || "",
     fileName: fileName || "",
     fileSize: fileSize || 0,
+    replyTo: replyTo || null,
     status: "sent",
     readBy: [req.user._id],
     deliveredTo: [req.user._id],
@@ -71,6 +89,15 @@ export const sendMessage = asyncHandler(async (req, res) => {
     message = await message.populate("sender", "name pic");
     message = await message.populate("chat");
     message = await message.populate("reactions.user", "name pic");
+    if (replyTo) {
+      message = await message.populate({
+        path: "replyTo",
+        populate: {
+          path: "sender",
+          select: "name pic",
+        },
+      });
+    }
     message = await User.populate(message, {
       path: "chat.users",
       select: "name pic email",
@@ -127,7 +154,14 @@ export const reactMessage = asyncHandler(async (req, res) => {
     const updatedMessage = await Message.findById(messageId)
       .populate("sender", "name pic email")
       .populate("chat")
-      .populate("reactions.user", "name pic");
+      .populate("reactions.user", "name pic")
+      .populate({
+        path: "replyTo",
+        populate: {
+          path: "sender",
+          select: "name pic",
+        },
+      });
 
     res.json(updatedMessage);
   } catch (error) {
@@ -187,7 +221,7 @@ export const markMessagesDelivered = asyncHandler(async (req, res) => {
   }
 });
 
-//@description     Upload image or video
+//@description     Upload any media (image, video, audio, file)
 //@route           POST /api/message/upload
 //@access          Protected
 export const uploadFile = asyncHandler(async (req, res) => {
@@ -195,8 +229,17 @@ export const uploadFile = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
-  const isVideo = req.file.mimetype.startsWith("video/");
-  const mediaType = isVideo ? "video" : "image";
+  let mediaType = "file";
+  const mime = req.file.mimetype;
+
+  if (mime.startsWith("image/")) {
+    mediaType = "image";
+  } else if (mime.startsWith("video/")) {
+    mediaType = "video";
+  } else if (mime.startsWith("audio/")) {
+    mediaType = "audio";
+  }
+
   const fileUrl = `/uploads/${req.file.filename}`;
 
   res.json({
@@ -205,4 +248,64 @@ export const uploadFile = asyncHandler(async (req, res) => {
     fileName: req.file.originalname,
     fileSize: req.file.size,
   });
+});
+
+//@description     Delete a message (soft delete for user)
+//@route           DELETE /api/message/:messageId
+//@access          Protected
+export const deleteMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params;
+  const { deleteForEveryone } = req.query;
+
+  try {
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    if (
+      deleteForEveryone === "true" &&
+      message.sender.toString() === req.user._id.toString()
+    ) {
+      await Message.findByIdAndDelete(messageId);
+      return res.json({
+        success: true,
+        messageId,
+        deleteForEveryone: true,
+        chatId: message.chat,
+      });
+    }
+
+    // Otherwise delete for me
+    await Message.findByIdAndUpdate(messageId, {
+      $addToSet: { deletedFor: req.user._id },
+    });
+
+    res.json({ success: true, messageId, deleteForEveryone: false });
+  } catch (error) {
+    res.status(400);
+    throw new Error(error.message);
+  }
+});
+
+//@description     Star or unstar a message
+//@route           PUT /api/message/:messageId/star
+//@access          Protected
+export const toggleStarMessage = asyncHandler(async (req, res) => {
+  const { messageId } = req.params;
+
+  try {
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    message.isStarred = !message.isStarred;
+    await message.save();
+
+    res.json({ success: true, isStarred: message.isStarred });
+  } catch (error) {
+    res.status(400);
+    throw new Error(error.message);
+  }
 });

@@ -35,7 +35,7 @@ const messageModel = mongoose.Schema(
     },
     mediaType: {
       type: String,
-      enum: ["text", "image", "video"],
+      enum: ["text", "image", "video", "audio", "file"],
       default: "text",
     },
     fileUrl: {
@@ -50,6 +50,25 @@ const messageModel = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
+    isStarred: {
+      type: Boolean,
+      default: false,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+    deletedFor: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     reactions: [reactionSchema],
     status: {
       type: String,

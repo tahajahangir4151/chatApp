@@ -7,6 +7,10 @@ import {
   fetchAllChats,
   removeFromGroup,
   renameGroup,
+  togglePinChat,
+  toggleMuteChat,
+  toggleFavoriteChat,
+  clearChatMessages,
 } from "../controllers/chatControllers.js";
 
 const router = express.Router();
@@ -17,5 +21,9 @@ router.route("/group").post(protect, createGroupChat);
 router.route("/rename").put(protect, renameGroup);
 router.route("/groupadd").put(protect, addUserToGroup);
 router.route("/groupremove").put(protect, removeFromGroup);
+router.route("/pin").put(protect, togglePinChat);
+router.route("/mute").put(protect, toggleMuteChat);
+router.route("/favorite").put(protect, toggleFavoriteChat);
+router.route("/:chatId/clear").delete(protect, clearChatMessages);
 
 export default router;

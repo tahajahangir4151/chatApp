@@ -112,6 +112,13 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Message deleted event
+  socket.on("delete message", (deleteData) => {
+    if (deleteData?.chatId) {
+      socket.in(deleteData.chatId).emit("message deleted", deleteData);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected from socket");
   });

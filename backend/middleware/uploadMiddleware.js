@@ -37,16 +37,40 @@ const fileFilter = (req, file, cb) => {
     "video/quicktime",
     "video/x-matroska",
   ];
+  const allowedAudioTypes = [
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/ogg",
+    "audio/wav",
+    "audio/webm",
+    "audio/m4a",
+    "audio/aac",
+  ];
+  const allowedDocTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/plain",
+    "application/zip",
+    "application/x-zip-compressed",
+  ];
 
   if (
     allowedImageTypes.includes(file.mimetype) ||
-    allowedVideoTypes.includes(file.mimetype)
+    allowedVideoTypes.includes(file.mimetype) ||
+    allowedAudioTypes.includes(file.mimetype) ||
+    allowedDocTypes.includes(file.mimetype) ||
+    file.mimetype.startsWith("audio/") ||
+    file.mimetype.startsWith("image/") ||
+    file.mimetype.startsWith("video/")
   ) {
     cb(null, true);
   } else {
     cb(
       new Error(
-        "Unsupported file type. Only images (JPG, PNG, GIF, WebP, SVG) and videos (MP4, WebM, OGG, MOV) are allowed."
+        "Unsupported file type. Please upload images, videos, audio notes, or documents (PDF, DOCX, TXT, ZIP)."
       ),
       false
     );

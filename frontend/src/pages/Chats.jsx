@@ -1,30 +1,51 @@
 import React, { useState } from "react";
 import { useChatState } from "../context/chatProvider";
-import { Box } from "@chakra-ui/react";
-import SideDrawer from "../components/miscellaneous/SideDrawer";
+import { Flex, useDisclosure } from "@chakra-ui/react";
+import TopBar from "../components/layout/TopBar";
+import NavSidebar from "../components/layout/NavSidebar";
 import MyChats from "../components/MyChats";
 import ChatBox from "../components/ChatBox";
+import SettingsModal from "../components/modals/SettingsModal";
 
 const Chats = () => {
   const { user } = useChatState();
   const [fetchAgain, setFetchAgain] = useState(false);
+  const [activeNavTab, setActiveNavTab] = useState("chats");
+
+  const {
+    isOpen: isSettingsOpen,
+    onOpen: onSettingsOpen,
+    onClose: onSettingsClose,
+  } = useDisclosure();
 
   return (
-    <div style={{ width: "100%" }}>
-      {user && <SideDrawer />}
-      <Box
-        display="flex"
-        justifyContent={"space-between"}
-        w="100%"
-        h="91.5vh"
-        p="10px"
-      >
+    <Flex direction="column" w="100%" h="100vh" overflow="hidden" bg="#F8FAFC">
+      {/* Polished Top Navigation Bar */}
+      {user && <TopBar onOpenSettings={onSettingsOpen} />}
+
+      {/* Main 3-Pane Messaging Body */}
+      <Flex flex="1" w="100%" h="calc(100vh - 60px)" overflow="hidden">
+        {/* Left Navigation Rail (Collapsible) */}
+        {user && (
+          <NavSidebar
+            activeTab={activeNavTab}
+            onTabChange={setActiveNavTab}
+            onOpenSettings={onSettingsOpen}
+          />
+        )}
+
+        {/* Conversation List Sidebar */}
         {user && <MyChats fetchAgain={fetchAgain} />}
+
+        {/* Active Chat Area */}
         {user && (
           <ChatBox fetchAgain={fetchAgain} setFetchAgain={setFetchAgain} />
         )}
-      </Box>
-    </div>
+      </Flex>
+
+      {/* Global Settings Modal */}
+      <SettingsModal isOpen={isSettingsOpen} onClose={onSettingsClose} />
+    </Flex>
   );
 };
 
