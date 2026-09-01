@@ -5,6 +5,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import App from "./App";
 import { ChakraProvider } from "@chakra-ui/react";
 import ChatProvider from "./context/chatProvider";
+import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -16,3 +17,6 @@ root.render(
     </ChatProvider>
   </Router>
 );
+
+// Register service worker for PWA functionality
+serviceWorkerRegistration.register();

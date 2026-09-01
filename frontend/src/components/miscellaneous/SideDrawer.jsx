@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChatState } from "../../context/chatProvider";
 import {
   Avatar,
@@ -24,6 +24,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BellIcon, ChevronDownIcon } from "@chakra-ui/icons";
+import { MdOutlineInstallDesktop } from "react-icons/md";
 import ProfileModal from "./ProfileModal";
 import UserListItem from "../usersAvatar/UserListItem";
 import { Effect } from "react-notification-badge";
@@ -37,6 +38,10 @@ const SideDrawer = () => {
   const [loading, setLoading] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
 
+  // PWA Install Prompt state
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
   const {
     setSelectedChat,
     user,
@@ -49,6 +54,47 @@ const SideDrawer = () => {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt
+      );
+    };
+  }, []);
+
+  const installAppHandler = async () => {
+    if (!deferredPrompt) {
+      toast({
+        title: "PWA is already installed or not supported on this browser.",
+        status: "info",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      toast({
+        title: "Thank you for installing Talk-A-Tive!",
+        status: "success",
+        duration: 2500,
+        isClosable: true,
+      });
+    }
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
 
   const logoutHandler = () => {
     localStorage.removeItem("userInfo");
@@ -89,12 +135,11 @@ const SideDrawer = () => {
         isClosable: true,
         position: "bottom-left",
       });
+      setLoading(false);
     }
   };
 
   const accessChat = async (userId) => {
-    console.log(userId);
-
     try {
       setLoadingChat(true);
       const config = {
@@ -118,6 +163,7 @@ const SideDrawer = () => {
         isClosable: true,
         position: "bottom-left",
       });
+      setLoadingChat(false);
     }
   };
 
@@ -140,10 +186,26 @@ const SideDrawer = () => {
             </Text>
           </Button>
         </Tooltip>
-        <Text fontSize="2xl" fontFamily="Work sans">
+
+        <Text fontSize="2xl" fontFamily="Work sans" fontWeight="bold">
           Talk-A-Tive
         </Text>
-        <div>
+
+        <Box display="flex" alignItems="center" gap={1}>
+          {/* PWA Install Button */}
+          {isInstallable && (
+            <Button
+              size="sm"
+              colorScheme="teal"
+              variant="solid"
+              leftIcon={<MdOutlineInstallDesktop size={18} />}
+              onClick={installAppHandler}
+              display={{ base: "none", sm: "inline-flex" }}
+            >
+              Install App
+            </Button>
+          )}
+
           <Menu>
             <MenuButton p={1}>
               <NotificationBadge
@@ -169,6 +231,7 @@ const SideDrawer = () => {
               ))}
             </MenuList>
           </Menu>
+
           <Menu>
             <MenuButton as={Button} bg="white" rightIcon={<ChevronDownIcon />}>
               <Avatar
@@ -180,13 +243,21 @@ const SideDrawer = () => {
             </MenuButton>
             <MenuList>
               <ProfileModal user={user}>
-                <MenuItem>My Profile</MenuItem>{" "}
+                <MenuItem>My Profile</MenuItem>
               </ProfileModal>
+              {isInstallable && (
+                <MenuItem
+                  icon={<MdOutlineInstallDesktop size={18} />}
+                  onClick={installAppHandler}
+                >
+                  Install App (PWA)
+                </MenuItem>
+              )}
               <MenuDivider />
               <MenuItem onClick={logoutHandler}>Logout</MenuItem>
             </MenuList>
           </Menu>
-        </div>
+        </Box>
       </Box>
 
       <Drawer placement="left" onClose={onClose} isOpen={isOpen}>

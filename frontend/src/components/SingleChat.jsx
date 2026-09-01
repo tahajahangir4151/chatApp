@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useChatState } from "../context/chatProvider";
 import {
   Box,
@@ -7,9 +7,19 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  InputLeftElement,
   Spinner,
   Text,
   useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Button,
+  Badge,
 } from "@chakra-ui/react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 import { getSender, getSenderFull } from "../config/chatLogics";
@@ -20,12 +30,20 @@ import "./styles.css";
 import ScrollableChats from "./ScrollableChats";
 import io from "socket.io-client";
 import Picker from "emoji-picker-react";
-import { FaRegSmile } from "react-icons/fa";
+import { FaRegSmile, FaPaperclip } from "react-icons/fa";
+import { IoSend } from "react-icons/io5";
 import Lottie from "react-lottie";
 import animationData from "../animations/typing.json";
 
-// const ENDPOINT = "http://localhost:8080";
-const ENDPOINT = "http://54.152.156.110:8080";
+const ENDPOINT =
+  process.env.REACT_APP_BACKEND_URL ||
+  (typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1")
+    ? "http://localhost:8080"
+    : typeof window !== "undefined"
+    ? window.location.origin
+    : "http://localhost:8080");
 
 var socket, selectedChatCompare;
 
@@ -37,7 +55,14 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const [loading, setLoading] = useState(false);
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+
+  // Media attachment states
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaCaption, setMediaCaption] = useState("");
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const defaultOptions = {
     loop: true,
@@ -51,8 +76,6 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const { user, selectedChat, setSelectedChat, notification, setNotification } =
     useChatState();
   const toast = useToast();
-  // console.log("User:", user);
-  // console.log("SelectedChat:", selectedChat);
 
   useEffect(() => {
     socket = io(ENDPOINT);
@@ -61,10 +84,13 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     socket.on("typing", () => setIsTyping(true));
     socket.on("stop typing", () => setIsTyping(false));
 
+    return () => {
+      socket.disconnect();
+    };
     // eslint-disable-next-line
   }, []);
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!selectedChat) return;
 
     try {
@@ -79,33 +105,36 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
         config
       );
 
-      console.log(data);
       setMessages(data);
       setLoading(false);
 
       socket.emit("join chat", selectedChat._id);
+      socket.emit("mark seen", {
+        chatId: selectedChat._id,
+        userId: user.data._id,
+      });
     } catch (error) {
       toast({
-        title: "Error Occured!",
-        description: "Failed to  Load the Messages",
+        title: "Error Occurred!",
+        description: "Failed to Load the Messages",
         status: "error",
         duration: 2000,
         isClosable: true,
         position: "bottom-left",
       });
+      setLoading(false);
     }
-  };
+  }, [selectedChat, user, toast]);
 
   useEffect(() => {
     fetchMessages();
-
     selectedChatCompare = selectedChat;
-    // eslint-disable-next-line
-  }, [selectedChat]);
+  }, [selectedChat, fetchMessages]);
 
-  console.log(notification);
   useEffect(() => {
-    socket.on("message recieved", (newMessageRecieved) => {
+    if (!socket) return;
+
+    const handleMessageRecieved = (newMessageRecieved) => {
       if (
         !selectedChatCompare ||
         selectedChatCompare._id !== newMessageRecieved.chat._id
@@ -114,10 +143,79 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           setNotification([newMessageRecieved, ...notification]);
           setFetchAgain(!fetchAgain);
         }
+        // Notify sender that message was delivered
+        socket.emit("message delivered", {
+          messageId: newMessageRecieved._id,
+          chatId: newMessageRecieved.chat._id,
+          senderId: newMessageRecieved.sender._id,
+          userId: user.data._id,
+        });
       } else {
-        setMessages([...messages, newMessageRecieved]);
+        // Message received in active chat: mark seen
+        setMessages((prevMessages) => [...prevMessages, newMessageRecieved]);
+        socket.emit("mark seen", {
+          chatId: selectedChatCompare._id,
+          userId: user.data._id,
+        });
+        // Call read API
+        const config = {
+          headers: {
+            Authorization: `Bearer ${user.data.token}`,
+          },
+        };
+        axios
+          .put(`/api/message/read/${selectedChatCompare._id}`, {}, config)
+          .catch(() => {});
       }
-    });
+    };
+
+    const handleReactionUpdated = ({ messageId, reactions }) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((m) =>
+          m._id === messageId ? { ...m, reactions } : m
+        )
+      );
+    };
+
+    const handleMessagesSeen = ({ chatId, userId }) => {
+      if (selectedChatCompare && selectedChatCompare._id === chatId) {
+        setMessages((prevMessages) =>
+          prevMessages.map((m) => {
+            if (m.sender?._id === user.data._id) {
+              const readBy = m.readBy ? [...m.readBy] : [];
+              if (!readBy.includes(userId)) readBy.push(userId);
+              return { ...m, status: "seen", readBy };
+            }
+            return m;
+          })
+        );
+      }
+    };
+
+    const handleMessageDelivered = ({ messageId, userId }) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((m) => {
+          if (m._id === messageId && m.status !== "seen") {
+            const deliveredTo = m.deliveredTo ? [...m.deliveredTo] : [];
+            if (!deliveredTo.includes(userId)) deliveredTo.push(userId);
+            return { ...m, status: "delivered", deliveredTo };
+          }
+          return m;
+        })
+      );
+    };
+
+    socket.on("message recieved", handleMessageRecieved);
+    socket.on("message reaction updated", handleReactionUpdated);
+    socket.on("messages seen", handleMessagesSeen);
+    socket.on("message delivered", handleMessageDelivered);
+
+    return () => {
+      socket.off("message recieved", handleMessageRecieved);
+      socket.off("message reaction updated", handleReactionUpdated);
+      socket.off("messages seen", handleMessagesSeen);
+      socket.off("message delivered", handleMessageDelivered);
+    };
   });
 
   const handleEmojiClick = (emojiObject) => {
@@ -126,8 +224,48 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       setNewMessage((prevMessage) => (prevMessage || "") + newEmoji);
     }
     setShowPicker(false);
-    inputRef.current.focus();
+    if (inputRef.current) inputRef.current.focus();
   };
+
+  // Toggle or add reaction (WhatsApp style)
+  const handleReaction = async (messageId, emoji) => {
+    try {
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.data.token}`,
+        },
+      };
+
+      const { data } = await axios.put(
+        `/api/message/${messageId}/react`,
+        { emoji },
+        config
+      );
+
+      // Update in state
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? data : m))
+      );
+
+      // Emit to socket
+      socket.emit("message reaction", {
+        messageId,
+        chatId: selectedChat._id,
+        reactions: data.reactions,
+        senderId: user.data._id,
+      });
+    } catch (error) {
+      toast({
+        title: "Could not add reaction",
+        status: "error",
+        duration: 1500,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Send regular text message
   const sendMessage = async (event) => {
     if (event.key === "Enter" && newMessage) {
       socket.emit("stop typing", selectedChat._id);
@@ -138,23 +276,23 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
             Authorization: `Bearer ${user.data.token}`,
           },
         };
+        const messageToSend = newMessage;
         setNewMessage("");
+
         const { data } = await axios.post(
-          `${window.location.origin}/api/message`,
+          "/api/message",
           {
-            content: newMessage,
+            content: messageToSend,
             chatId: selectedChat._id,
           },
           config
         );
 
-        console.log(data);
-
         socket.emit("new message", data);
-        setMessages([...messages, data]);
+        setMessages((prev) => [...prev, data]);
       } catch (error) {
         toast({
-          title: "Error Occured!",
+          title: "Error Occurred!",
           description: "Failed to send the message",
           status: "error",
           duration: 2000,
@@ -162,6 +300,114 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           position: "bottom-left",
         });
       }
+    }
+  };
+
+  // Handle file select for media
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select a file smaller than 50MB",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const isVideo = file.type.startsWith("video/");
+    const previewUrl = URL.createObjectURL(file);
+    const sizeFormatted = (file.size / (1024 * 1024)).toFixed(1) + " MB";
+
+    setSelectedMedia({
+      file,
+      previewUrl,
+      type: isVideo ? "video" : "image",
+      name: file.name,
+      size: sizeFormatted,
+    });
+    setMediaCaption("");
+  };
+
+  const cancelMediaUpload = () => {
+    if (selectedMedia?.previewUrl) {
+      URL.revokeObjectURL(selectedMedia.previewUrl);
+    }
+    setSelectedMedia(null);
+    setMediaCaption("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Upload and send image or video
+  const sendMediaMessage = async () => {
+    if (!selectedMedia) return;
+
+    try {
+      setIsUploadingMedia(true);
+      const formData = new FormData();
+      formData.append("file", selectedMedia.file);
+
+      const uploadConfig = {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${user.data.token}`,
+        },
+      };
+
+      // 1. Upload media file to server
+      const uploadRes = await axios.post(
+        "/api/message/upload",
+        formData,
+        uploadConfig
+      );
+      const { fileUrl, mediaType, fileName, fileSize } = uploadRes.data;
+
+      // 2. Create message with media attachment
+      const messageConfig = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.data.token}`,
+        },
+      };
+
+      const { data } = await axios.post(
+        "/api/message",
+        {
+          content: mediaCaption,
+          chatId: selectedChat._id,
+          mediaType,
+          fileUrl,
+          fileName,
+          fileSize,
+        },
+        messageConfig
+      );
+
+      socket.emit("new message", data);
+      setMessages((prev) => [...prev, data]);
+      cancelMediaUpload();
+      setIsUploadingMedia(false);
+
+      toast({
+        title: "Sent!",
+        status: "success",
+        duration: 1500,
+        isClosable: true,
+      });
+    } catch (error) {
+      setIsUploadingMedia(false);
+      toast({
+        title: "Upload Failed",
+        description:
+          error.response?.data?.message || "Could not send media file",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -191,7 +437,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       {selectedChat ? (
         <>
           <Text
-            fontSize={{ base: "28px", md: "30px" }}
+            fontSize={{ base: "26px", md: "30px" }}
             pb={3}
             px={2}
             w="100%"
@@ -242,62 +488,177 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
               />
             ) : (
               <div className="messages">
-                <ScrollableChats messages={messages} />
+                <ScrollableChats
+                  messages={messages}
+                  handleReaction={handleReaction}
+                />
               </div>
             )}
+
             <FormControl onKeyDown={sendMessage} mt={3} isRequired>
               {isTyping ? (
                 <div>
                   <Lottie
                     options={defaultOptions}
-                    // height={50}
                     width={70}
                     style={{ marginBottom: 15, marginLeft: 0 }}
                   />
                 </div>
               ) : (
                 <></>
-              )}{" "}
-              <InputGroup>
+              )}
+
+              {/* Hidden file input for images and videos */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="image/*,video/*"
+                onChange={handleFileSelect}
+              />
+
+              <InputGroup size="md">
+                {/* Media Attachment Button (Paperclip) */}
+                <InputLeftElement width="3rem">
+                  <IconButton
+                    icon={<FaPaperclip />}
+                    aria-label="Attach Media"
+                    variant="ghost"
+                    color="#4A5568"
+                    _hover={{ color: "#2B6CB0", bg: "gray.200" }}
+                    onClick={() => fileInputRef.current?.click()}
+                  />
+                </InputLeftElement>
+
                 <Input
                   variant={"filled"}
-                  bg={"#E0E0E0"}
-                  placeholder="Enter a message"
+                  bg={"#FFFFFF"}
+                  placeholder="Type a message..."
+                  pl="3.2rem"
+                  pr="3.5rem"
+                  borderRadius="20px"
+                  boxShadow="0 1px 3px rgba(0,0,0,0.08)"
                   onChange={typingHandler}
                   value={newMessage}
                   ref={inputRef}
                 />
-                <InputRightElement>
+
+                {/* Emoji Picker Button */}
+                <InputRightElement width="3.2rem">
                   <IconButton
                     onClick={() => setShowPicker(!showPicker)}
-                    backgroundColor="#E0E0E0"
-                    icon={<FaRegSmile />}
+                    variant="ghost"
+                    color="#4A5568"
+                    _hover={{ color: "#2B6CB0", bg: "gray.200" }}
+                    icon={<FaRegSmile size={20} />}
                   />
                 </InputRightElement>
+
                 {showPicker && (
                   <Picker
                     style={{
                       position: "absolute",
-                      bottom: "42px",
-                      // right: "-10px",
+                      bottom: "48px",
                       height: "400px",
-                      right: window.innerWidth > 600 ? "-10px" : "50%",
+                      right: window.innerWidth > 600 ? "0px" : "50%",
                       transform:
                         window.innerWidth > 600 ? "" : "translateX(50%)",
                       overflowY: "scroll",
+                      zIndex: 100,
                     }}
-                    // onEmojiClick={(emojiObject) =>
-                    //   setNewMessage((prevMsg) => prevMsg + emojiObject.emoji)
-                    // }
                     onEmojiClick={handleEmojiClick}
                     autoFocusSearch={false}
-                    theme="dark"
+                    theme="light"
                     emojiStyle="google"
                   />
                 )}
               </InputGroup>
             </FormControl>
           </Box>
+
+          {/* Media Preview Modal Before Sending */}
+          {selectedMedia && (
+            <Modal
+              isOpen={Boolean(selectedMedia)}
+              onClose={cancelMediaUpload}
+              size="lg"
+              isCentered
+            >
+              <ModalOverlay backdropFilter="blur(4px)" />
+              <ModalContent borderRadius="16px">
+                <ModalHeader pb={1}>
+                  Send {selectedMedia.type === "video" ? "Video" : "Image"}
+                  <Badge ml={2} colorScheme="blue">
+                    {selectedMedia.size}
+                  </Badge>
+                </ModalHeader>
+                <ModalCloseButton />
+                <ModalBody>
+                  <Box
+                    display="flex"
+                    justifyContent="center"
+                    alignItems="center"
+                    maxH="380px"
+                    bg="gray.100"
+                    borderRadius="12px"
+                    overflow="hidden"
+                    mb={3}
+                  >
+                    {selectedMedia.type === "video" ? (
+                      <video
+                        src={selectedMedia.previewUrl}
+                        controls
+                        style={{
+                          maxHeight: "360px",
+                          maxWidth: "100%",
+                          borderRadius: "10px",
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={selectedMedia.previewUrl}
+                        alt="Preview"
+                        style={{
+                          maxHeight: "360px",
+                          maxWidth: "100%",
+                          objectFit: "contain",
+                          borderRadius: "10px",
+                        }}
+                      />
+                    )}
+                  </Box>
+                  <Input
+                    placeholder="Add a caption..."
+                    value={mediaCaption}
+                    onChange={(e) => setMediaCaption(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isUploadingMedia) {
+                        sendMediaMessage();
+                      }
+                    }}
+                  />
+                </ModalBody>
+                <ModalFooter gap={2}>
+                  <Button
+                    variant="ghost"
+                    onClick={cancelMediaUpload}
+                    isDisabled={isUploadingMedia}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    colorScheme="blue"
+                    leftIcon={<IoSend />}
+                    isLoading={isUploadingMedia}
+                    loadingText="Sending..."
+                    onClick={sendMediaMessage}
+                  >
+                    Send
+                  </Button>
+                </ModalFooter>
+              </ModalContent>
+            </Modal>
+          )}
         </>
       ) : (
         <Box
