@@ -24,7 +24,8 @@ import { FaRegSmile } from "react-icons/fa";
 import Lottie from "react-lottie";
 import animationData from "../animations/typing.json";
 
-const ENDPOINT = "http://localhost:8080";
+// const ENDPOINT = "http://localhost:8080";
+const ENDPOINT = "http://54.152.156.110:8080";
 
 var socket, selectedChatCompare;
 
