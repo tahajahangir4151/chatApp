@@ -19,12 +19,14 @@ import {
   IoArrowBack,
   IoInformationCircleOutline,
   IoTrashOutline,
+  IoPersonAddOutline,
 } from "react-icons/io5";
 import { useChatState } from "../../context/chatProvider";
 import { getSender, getSenderFull } from "../../config/chatLogics";
 import UserAvatar from "../common/UserAvatar";
 import CallModal from "../modals/CallModal";
 import UpdateGroupChatModal from "../miscellaneous/UpdateGroupChatModal";
+import SendInviteModal from "../modals/SendInviteModal";
 
 const ChatHeader = ({
   chat,
@@ -44,6 +46,11 @@ const ChatHeader = ({
     isOpen: isCallOpen,
     onOpen: onCallOpen,
     onClose: onCallClose,
+  } = useDisclosure();
+  const {
+    isOpen: isInviteOpen,
+    onOpen: onInviteOpen,
+    onClose: onInviteClose,
   } = useDisclosure();
 
   if (!chat) return null;
@@ -178,6 +185,18 @@ const ChatHeader = ({
             aria-label="Chat details"
           />
 
+          {/* Invite via Email */}
+          <IconButton
+            size="sm"
+            variant="ghost"
+            color="#64748B"
+            _hover={{ bg: "#EFF6FF", color: "#2563EB" }}
+            icon={<IoPersonAddOutline size={18} />}
+            onClick={onInviteOpen}
+            aria-label={isGroup ? "Invite to Group" : "Invite to Chat"}
+            title={isGroup ? "Invite to this group" : "Invite friend"}
+          />
+
           {/* More Options Menu */}
           <Menu isLazy>
             <MenuButton
@@ -229,6 +248,13 @@ const ChatHeader = ({
           name: chatTitle,
           pic: isGroup ? "" : otherUser?.pic,
         }}
+      />
+
+      {/* Send Invite Modal */}
+      <SendInviteModal
+        isOpen={isInviteOpen}
+        onClose={onInviteClose}
+        defaultChat={chat}
       />
     </>
   );

@@ -28,6 +28,13 @@ import ChatHeader from "./chat/ChatHeader";
 import ScrollableChats from "./ScrollableChats";
 import ChatInput from "./chat/ChatInput";
 import ChatInfoPanel from "./chat/ChatInfoPanel";
+import {
+  savePendingMessage,
+  getPendingMessages,
+  cacheChatMessages,
+  getCachedChatMessages,
+} from "../utils/indexedDB";
+import { syncPendingMessages, setupAutoSync } from "../utils/offlineSync";
 import "./styles.css";
 
 const ENDPOINT =
@@ -81,7 +88,12 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   useEffect(() => {
     socket = io(ENDPOINT);
     socket.emit("setup", loggedUser);
-    socket.on("connected", () => setSocketConnected(true));
+    socket.on("connected", () => {
+      setSocketConnected(true);
+      if (navigator.onLine && currentToken) {
+        syncPendingMessages(currentToken, socket);
+      }
+    });
     socket.on("typing", () => setIsTyping(true));
     socket.on("stop typing", () => setIsTyping(false));
 
@@ -91,9 +103,26 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     // eslint-disable-next-line
   }, []);
 
-  // Fetch messages for active chat
+  // Fetch messages for active chat (with IndexedDB offline cache & outbox support)
   const fetchMessages = useCallback(async () => {
     if (!selectedChat) return;
+
+    // 1. Immediately display cached messages + pending outbox messages from IndexedDB
+    try {
+      const cached = await getCachedChatMessages(selectedChat._id);
+      const pending = await getPendingMessages(selectedChat._id);
+      if (cached.length > 0 || pending.length > 0) {
+        setMessages([...cached, ...pending]);
+      }
+    } catch (e) {
+      console.warn("[SingleChat] Error reading cache:", e);
+    }
+
+    // 2. If offline, keep cached messages without making network request
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const config = {
@@ -107,25 +136,63 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
         config
       );
 
-      setMessages(data);
+      // Cache fresh confirmed messages to IndexedDB
+      await cacheChatMessages(selectedChat._id, data);
+
+      // Append any pending messages for this chat that haven't sent yet
+      const pending = await getPendingMessages(selectedChat._id);
+      setMessages([...data, ...pending]);
       setLoading(false);
 
-      socket.emit("join chat", selectedChat._id);
-      socket.emit("mark seen", {
-        chatId: selectedChat._id,
-        userId: currentUserId,
-      });
+      if (socket) {
+        socket.emit("join chat", selectedChat._id);
+        socket.emit("mark seen", {
+          chatId: selectedChat._id,
+          userId: currentUserId,
+        });
+      }
     } catch (error) {
-      toast({
-        title: "Error Occurred!",
-        description: "Failed to load messages",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
       setLoading(false);
+      // If error occurred while online, show toast
+      if (navigator.onLine) {
+        toast({
+          title: "Error Occurred!",
+          description: "Failed to load messages",
+          status: "error",
+          duration: 2000,
+          isClosable: true,
+        });
+      }
     }
   }, [selectedChat, currentToken, currentUserId, toast]);
+
+  // Listen for message-synced events and setup background outbox sync
+  useEffect(() => {
+    const handleMessageSynced = (e) => {
+      const { tempId, message: serverMsg, chatId } = e.detail || {};
+      if (!serverMsg || !tempId) return;
+
+      if (selectedChatCompare && selectedChatCompare._id === chatId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === tempId || m.tempId === tempId ? serverMsg : m
+          )
+        );
+      }
+    };
+
+    window.addEventListener("message-synced", handleMessageSynced);
+
+    const cleanupSync = setupAutoSync(
+      () => currentToken,
+      () => socket
+    );
+
+    return () => {
+      window.removeEventListener("message-synced", handleMessageSynced);
+      if (cleanupSync) cleanupSync();
+    };
+  }, [currentToken]);
 
   useEffect(() => {
     fetchMessages();
@@ -317,11 +384,66 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     }
   };
 
-  // Send regular text message (with optional quoted reply)
+  // Send regular text message (with IndexedDB offline queuing like WhatsApp)
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    socket.emit("stop typing", selectedChat._id);
+    if (socket && socketConnected) {
+      socket.emit("stop typing", selectedChat._id);
+    }
+
+    const textToSend = newMessage;
+    const replyRef = replyingTo;
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+    // Build optimistic message with pending WhatsApp clock status
+    const pendingMsg = {
+      _id: tempId,
+      tempId,
+      chat: selectedChat,
+      chatId: selectedChat._id,
+      sender: {
+        _id: currentUserId,
+        name: loggedUser.name,
+        pic: loggedUser.pic,
+      },
+      content: textToSend,
+      replyTo: replyRef,
+      mediaType: "text",
+      fileUrl: "",
+      fileName: "",
+      fileSize: 0,
+      status: "pending",
+      isPending: true,
+      createdAt: new Date().toISOString(),
+      readBy: [currentUserId],
+      deliveredTo: [currentUserId],
+      reactions: [],
+    };
+
+    // Immediately render in UI and clear inputs for instant responsiveness
+    setNewMessage("");
+    setReplyingTo(null);
+    setMessages((prev) => [...prev, pendingMsg]);
+
+    // If currently offline: directly store in IndexedDB outbox
+    if (!navigator.onLine) {
+      try {
+        await savePendingMessage(pendingMsg);
+        toast({
+          title: "Offline - Message Queued",
+          description: "Stored in IndexedDB. Will send automatically when online.",
+          status: "info",
+          duration: 2500,
+          isClosable: true,
+        });
+      } catch (err) {
+        console.error("Failed to save offline message to IndexedDB:", err);
+      }
+      return;
+    }
+
+    // Online: attempt sending to backend
     try {
       const config = {
         headers: {
@@ -329,32 +451,45 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           Authorization: `Bearer ${currentToken}`,
         },
       };
-      const textToSend = newMessage;
-      const replyRef = replyingTo?._id;
-
-      setNewMessage("");
-      setReplyingTo(null);
 
       const { data } = await axios.post(
         "/api/message",
         {
           content: textToSend,
           chatId: selectedChat._id,
-          replyTo: replyRef,
+          replyTo: replyRef?._id,
         },
         config
       );
 
-      socket.emit("new message", data);
-      setMessages((prev) => [...prev, data]);
-    } catch (error) {
-      toast({
-        title: "Error Occurred!",
-        description: "Failed to send message",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
+      // Replace temporary pending message with server confirmed message
+      setMessages((prev) =>
+        prev.map((m) => (m.tempId === tempId || m._id === tempId ? data : m))
+      );
+
+      if (socket) {
+        socket.emit("new message", data);
+      }
+
+      // Update cached messages in IndexedDB
+      getCachedChatMessages(selectedChat._id).then((cached) => {
+        cacheChatMessages(selectedChat._id, [...cached, data]);
       });
+    } catch (error) {
+      // Network failure while attempting send: queue to IndexedDB outbox
+      console.warn("[SingleChat] Send failed due to network. Queuing to IndexedDB:", error.message);
+      try {
+        await savePendingMessage(pendingMsg);
+        toast({
+          title: "Saved to Offline Outbox",
+          description: "Network unavailable. Message will send once connection is restored.",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (saveErr) {
+        console.error("Failed to save pending message to IndexedDB:", saveErr);
+      }
     }
   };
 
@@ -401,6 +536,16 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   // Upload and send attachment
   const sendMediaMessage = async () => {
     if (!selectedMedia) return;
+
+    if (!navigator.onLine) {
+      toast({
+        title: "Cannot upload while offline",
+        description: "Please reconnect to internet to send media and documents.",
+        status: "warning",
+        duration: 3000,
+      });
+      return;
+    }
 
     try {
       setIsUploadingMedia(true);
@@ -454,6 +599,102 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       toast({
         title: "Upload Failed",
         description: error.response?.data?.message || "Could not send media",
+        status: "error",
+        duration: 3000,
+      });
+    }
+  };
+
+  // Handle WhatsApp-style voice message recording and sending
+  const handleSendVoiceNote = async (audioFile, durationStr) => {
+    if (!audioFile) return;
+
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const previewUrl = URL.createObjectURL(audioFile);
+    const replyRef = replyingTo?._id;
+
+    // 1. Optimistically append voice message to UI
+    const pendingMsg = {
+      _id: tempId,
+      sender: user?.data || user,
+      content: "",
+      mediaType: "audio",
+      fileUrl: previewUrl,
+      fileName: `Voice Note (${durationStr || "0:05"})`,
+      fileSize: audioFile.size,
+      chat: selectedChat,
+      createdAt: new Date().toISOString(),
+      status: "pending",
+      isPending: true,
+      replyTo: replyingTo,
+    };
+
+    setMessages((prev) => [...prev, pendingMsg]);
+    setReplyingTo(null);
+
+    // 2. Offline check
+    if (!navigator.onLine) {
+      try {
+        await savePendingMessage(pendingMsg);
+        toast({
+          title: "Voice Note Saved to Outbox",
+          description: "Offline mode. Will send automatically when online.",
+          status: "info",
+          duration: 3000,
+        });
+      } catch (saveErr) {
+        console.error("Failed to save voice note to IndexedDB:", saveErr);
+      }
+      return;
+    }
+
+    // 3. Online upload & send
+    try {
+      const formData = new FormData();
+      formData.append("file", audioFile);
+
+      const uploadConfig = {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${currentToken}`,
+        },
+      };
+
+      const uploadRes = await axios.post("/api/message/upload", formData, uploadConfig);
+      const { fileUrl, fileName, fileSize } = uploadRes.data;
+
+      const messageConfig = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentToken}`,
+        },
+      };
+
+      const { data } = await axios.post(
+        "/api/message",
+        {
+          content: "",
+          chatId: selectedChat._id,
+          mediaType: "audio",
+          fileUrl,
+          fileName: fileName || `Voice Note (${durationStr || "0:05"})`,
+          fileSize,
+          replyTo: replyRef,
+        },
+        messageConfig
+      );
+
+      socket.emit("new message", data);
+
+      // Replace optimistic message with confirmed server message
+      setMessages((prev) =>
+        prev.map((m) => (m._id === tempId ? { ...data, status: "sent" } : m))
+      );
+    } catch (err) {
+      console.error("Failed to send voice note:", err);
+      toast({
+        title: "Voice Note Failed",
+        description: err.response?.data?.message || "Could not send voice message",
         status: "error",
         duration: 3000,
       });
@@ -551,7 +792,10 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
                 <Spinner size="xl" color="blue.500" thickness="3px" />
               </Flex>
             ) : (
-              <div className="messages" style={{ height: "100%" }}>
+              <div
+                className="messages"
+                style={{ height: "100%", width: "100%", overflow: "hidden" }}
+              >
                 <ScrollableChats
                   messages={displayedMessages}
                   handleReaction={handleReaction}
@@ -572,6 +816,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
             onSelectFile={handleSelectFile}
+            onSendVoiceNote={handleSendVoiceNote}
           />
 
           {/* Right-Side Chat Details Drawer */}

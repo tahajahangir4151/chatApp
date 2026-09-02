@@ -25,8 +25,10 @@ import {
   IoPause,
   IoDocumentTextOutline,
   IoDownloadOutline,
+  IoTimeOutline,
 } from "react-icons/io5";
 import UserAvatar from "../common/UserAvatar";
+import VoiceNotePlayer from "./VoiceNotePlayer";
 import "../styles.css";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "🎉"];
@@ -47,8 +49,6 @@ const MessageBubble = ({
 
   const [isHovered, setIsHovered] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const audioRef = useRef(null);
   const toast = useToast();
 
   const formatTime = (dateStr) => {
@@ -76,20 +76,25 @@ const MessageBubble = ({
     }
   };
 
-  const toggleAudioPlay = () => {
-    if (!audioRef.current) return;
-    if (isPlayingAudio) {
-      audioRef.current.pause();
-      setIsPlayingAudio(false);
-    } else {
-      audioRef.current.play();
-      setIsPlayingAudio(true);
-    }
-  };
-
   // Status checkmark
   const renderStatusTick = () => {
     if (!isMe) return null;
+
+    const isPending =
+      m.status === "pending" ||
+      m.isPending ||
+      (typeof m._id === "string" && m._id.startsWith("temp_"));
+
+    if (isPending) {
+      return (
+        <span
+          className="status-tick status-tick-pending"
+          title="Waiting to send (Offline - stored in IndexedDB)"
+        >
+          <IoTimeOutline size={14} color="#8696A0" />
+        </span>
+      );
+    }
 
     const isSeen =
       m.status === "seen" ||
@@ -263,6 +268,8 @@ const MessageBubble = ({
         px={3.5}
         py={2}
         maxW={{ base: "85%", md: "70%" }}
+        minW="60px"
+        wordBreak="break-word"
         boxShadow="0 1px 2px rgba(0,0,0,0.06)"
         mb={totalReactions > 0 ? "14px" : "2px"}
       >
@@ -298,7 +305,7 @@ const MessageBubble = ({
 
         {/* Image Attachment */}
         {m.mediaType === "image" && m.fileUrl && (
-          <Box mb={m.content ? 2 : 1}>
+          <Box mb={m.content ? 2 : 1} maxW="100%" overflow="hidden" borderRadius="12px">
             <img
               src={m.fileUrl}
               alt={m.fileName || "Image"}
@@ -310,7 +317,7 @@ const MessageBubble = ({
 
         {/* Video Attachment */}
         {m.mediaType === "video" && m.fileUrl && (
-          <Box mb={m.content ? 2 : 1}>
+          <Box mb={m.content ? 2 : 1} maxW="100%" overflow="hidden" borderRadius="12px">
             <video
               src={m.fileUrl}
               controls
@@ -320,29 +327,10 @@ const MessageBubble = ({
           </Box>
         )}
 
-        {/* Audio Message / Voice Note */}
+        {/* Audio Message / Voice Note (WhatsApp Style) */}
         {m.mediaType === "audio" && m.fileUrl && (
-          <Box mb={m.content ? 2 : 1} className="chat-audio-player">
-            <audio
-              ref={audioRef}
-              src={m.fileUrl}
-              onEnded={() => setIsPlayingAudio(false)}
-            />
-            <button
-              type="button"
-              className="chat-audio-play-btn"
-              onClick={toggleAudioPlay}
-            >
-              {isPlayingAudio ? <IoPause size={16} /> : <IoPlay size={16} />}
-            </button>
-            <Box flex="1">
-              <Text fontSize="xs" fontWeight="600">
-                Voice / Audio Note
-              </Text>
-              <Text fontSize="10px" color="#64748B">
-                {m.fileName || "audio.mp3"}
-              </Text>
-            </Box>
+          <Box mb={m.content ? 2 : 1}>
+            <VoiceNotePlayer audioUrl={m.fileUrl} isMe={isMe} />
           </Box>
         )}
 

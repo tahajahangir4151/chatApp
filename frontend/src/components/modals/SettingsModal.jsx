@@ -23,9 +23,13 @@ import {
   IoColorPaletteOutline,
   IoNotificationsOutline,
   IoShieldCheckmarkOutline,
+  IoSunnyOutline,
+  IoMoonOutline,
 } from "react-icons/io5";
+import { useTheme } from "../../context/themeContext";
 
 const SettingsModal = ({ isOpen, onClose }) => {
+  const { theme, setTheme } = useTheme();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [desktopNotifs, setDesktopNotifs] = useState(true);
   const [readReceipts, setReadReceipts] = useState(true);
@@ -75,19 +79,31 @@ const SettingsModal = ({ isOpen, onClose }) => {
               {/* Appearance Tab */}
               <TabPanel px={1} py={2}>
                 <VStack spacing={4} align="stretch">
-                  <Box p={3} bg="gray.50" borderRadius="10px">
-                    <Text fontWeight="600" fontSize="sm" color="gray.800">
+                  <Box p={3} bg={theme === "dark" ? "gray.800" : "gray.50"} borderRadius="10px">
+                    <Text fontWeight="600" fontSize="sm">
                       Theme
                     </Text>
-                    <Text fontSize="xs" color="gray.500" mb={2}>
-                      Clean modern light design system enabled by default
+                    <Text fontSize="xs" color="gray.500" mb={3}>
+                      Choose between light and sleek dark mode
                     </Text>
                     <HStack spacing={3}>
-                      <Button size="sm" colorScheme="blue" variant="solid">
+                      <Button
+                        size="sm"
+                        colorScheme="blue"
+                        variant={theme === "light" ? "solid" : "outline"}
+                        leftIcon={<IoSunnyOutline size={16} />}
+                        onClick={() => setTheme("light")}
+                      >
                         Light Mode
                       </Button>
-                      <Button size="sm" variant="outline" isDisabled>
-                        Dark Mode (Coming Soon)
+                      <Button
+                        size="sm"
+                        colorScheme="purple"
+                        variant={theme === "dark" ? "solid" : "outline"}
+                        leftIcon={<IoMoonOutline size={16} />}
+                        onClick={() => setTheme("dark")}
+                      >
+                        Dark Mode
                       </Button>
                     </HStack>
                   </Box>

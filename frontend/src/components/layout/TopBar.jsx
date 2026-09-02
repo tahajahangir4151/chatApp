@@ -34,6 +34,9 @@ import {
   IoColorPaletteOutline,
   IoLogOutOutline,
   IoChevronDown,
+  IoMoonOutline,
+  IoSunnyOutline,
+  IoPersonAddOutline,
 } from "react-icons/io5";
 import { MdOutlineInstallDesktop } from "react-icons/md";
 import { BsChatDotsFill } from "react-icons/bs";
@@ -47,6 +50,8 @@ import ChatLoading from "../ChatLoading";
 import ProfileModal from "../miscellaneous/ProfileModal";
 import EditProfileModal from "../modals/EditProfileModal";
 import SettingsModal from "../modals/SettingsModal";
+import SendInviteModal from "../modals/SendInviteModal";
+import { useTheme } from "../../context/themeContext";
 
 const TopBar = ({ onOpenSettings }) => {
   const {
@@ -84,6 +89,13 @@ const TopBar = ({ onOpenSettings }) => {
     onOpen: onSettingsOpen,
     onClose: onSettingsClose,
   } = useDisclosure();
+  const {
+    isOpen: isInviteOpen,
+    onOpen: onInviteOpen,
+    onClose: onInviteClose,
+  } = useDisclosure();
+
+  const { isDark, toggleTheme } = useTheme();
 
   // PWA Prompt
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -360,6 +372,30 @@ const TopBar = ({ onOpenSettings }) => {
             </MenuList>
           </Menu>
 
+          {/* Quick Invite Friend Button */}
+          <IconButton
+            size="sm"
+            variant="ghost"
+            color="#64748B"
+            _hover={{ bg: "#EFF6FF", color: "#2563EB" }}
+            icon={<IoPersonAddOutline size={19} />}
+            onClick={onInviteOpen}
+            aria-label="Invite friends via email"
+            title="Invite friend to chat"
+          />
+
+          {/* Theme Toggle (Dark / Light Mode) */}
+          <IconButton
+            size="sm"
+            variant="ghost"
+            color="#64748B"
+            _hover={{ bg: "#F1F5F9", color: "#F59E0B" }}
+            icon={isDark ? <IoSunnyOutline size={20} color="#F59E0B" /> : <IoMoonOutline size={19} />}
+            onClick={toggleTheme}
+            aria-label="Toggle theme mode"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          />
+
           {/* User Profile Dropdown Menu */}
           <Menu>
             <MenuButton
@@ -423,11 +459,19 @@ const TopBar = ({ onOpenSettings }) => {
               </MenuItem>
 
               <MenuItem
-                icon={<IoColorPaletteOutline size={16} />}
+                icon={<IoPersonAddOutline size={16} />}
                 borderRadius="8px"
-                onClick={onSettingsOpen}
+                onClick={onInviteOpen}
               >
-                Appearance
+                Invite Friend via Email
+              </MenuItem>
+
+              <MenuItem
+                icon={isDark ? <IoSunnyOutline size={16} /> : <IoMoonOutline size={16} />}
+                borderRadius="8px"
+                onClick={toggleTheme}
+              >
+                {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
               </MenuItem>
 
               {isInstallable && (
@@ -505,6 +549,8 @@ const TopBar = ({ onOpenSettings }) => {
 
       {/* Settings Modal */}
       <SettingsModal isOpen={isSettingsOpen} onClose={onSettingsClose} />
+      {/* Send Email Invite Modal */}
+      <SendInviteModal isOpen={isInviteOpen} onClose={onInviteClose} />
     </>
   );
 };

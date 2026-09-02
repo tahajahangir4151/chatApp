@@ -36,6 +36,7 @@ import {
   IoCheckmarkOutline,
   IoCheckmarkDoneOutline,
   IoCheckmarkDone,
+  IoTimeOutline,
 } from "react-icons/io5";
 import axios from "axios";
 import { useChatState } from "../context/chatProvider";
@@ -76,6 +77,14 @@ const MyChats = ({ fetchAgain }) => {
   useEffect(() => {
     setLoggedUser(JSON.parse(localStorage.getItem("userInfo")));
     fetchChats();
+
+    const handleSynced = () => {
+      fetchChats();
+    };
+    window.addEventListener("message-synced", handleSynced);
+    return () => {
+      window.removeEventListener("message-synced", handleSynced);
+    };
     // eslint-disable-next-line
   }, [fetchAgain]);
 
@@ -427,7 +436,12 @@ const MyChats = ({ fetchAgain }) => {
                         {/* Outgoing status ticks */}
                         {isLastMsgMine && (
                           <Box as="span" display="inline-flex">
-                            {lastMsg?.status === "seen" ? (
+                            {lastMsg?.status === "pending" ||
+                            lastMsg?.isPending ||
+                            (typeof lastMsg?._id === "string" &&
+                              lastMsg?._id.startsWith("temp_")) ? (
+                              <IoTimeOutline size={14} color="#8696A0" />
+                            ) : lastMsg?.status === "seen" ? (
                               <IoCheckmarkDone size={14} color="#34B7F1" />
                             ) : lastMsg?.status === "delivered" ? (
                               <IoCheckmarkDoneOutline

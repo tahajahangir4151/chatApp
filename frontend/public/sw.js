@@ -45,6 +45,12 @@ self.addEventListener("activate", (event) => {
 // Fetch Event - Stale-While-Revalidate for static assets, Network-First for others
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+
+  // Only handle http and https requests (ignore chrome-extension, data URIs, etc.)
+  if (!request.url.startsWith("http://") && !request.url.startsWith("https://")) {
+    return;
+  }
+
   const url = new URL(request.url);
 
   // Do not intercept or cache WebSocket, Socket.io, or API requests
