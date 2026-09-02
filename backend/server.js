@@ -6,6 +6,7 @@ import ConnectDb from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import inviteRoutes from "./routes/inviteRoutes.js";
 import { NotFound, errorhandler } from "./middleware/errorMiddleware.js";
 import http from "http";
 import { Server } from "socket.io";
@@ -26,6 +27,7 @@ app.use("/uploads", express.static(path.join(__dirname1, "backend", "uploads")))
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
+app.use("/api/invite", inviteRoutes);
 
 // --------------------------deployment------------------------------
 

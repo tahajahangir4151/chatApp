@@ -6,6 +6,7 @@ import NavSidebar from "../components/layout/NavSidebar";
 import MyChats from "../components/MyChats";
 import ChatBox from "../components/ChatBox";
 import SettingsModal from "../components/modals/SettingsModal";
+import OfflineBanner from "../components/common/OfflineBanner";
 
 const Chats = () => {
   const { user } = useChatState();
@@ -22,6 +23,9 @@ const Chats = () => {
     <Flex direction="column" w="100%" h="100vh" overflow="hidden" bg="#F8FAFC">
       {/* Polished Top Navigation Bar */}
       {user && <TopBar onOpenSettings={onSettingsOpen} />}
+
+      {/* WhatsApp-style Offline & Outbox Sync Alert Banner */}
+      <OfflineBanner token={user?.data?.token || user?.token} />
 
       {/* Main 3-Pane Messaging Body */}
       <Flex flex="1" w="100%" h="calc(100vh - 60px)" overflow="hidden">

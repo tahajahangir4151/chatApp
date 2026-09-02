@@ -43,7 +43,15 @@ const ScrollableChats = ({
   return (
     <>
       <ScrollableFeed>
-        <Box py={2}>
+        <Box
+          px={{ base: 3, md: 5 }}
+          pt={7}
+          pb={3}
+          w="100%"
+          maxW="100%"
+          overflowX="hidden"
+          boxSizing="border-box"
+        >
           {messages &&
             messages.map((m) => (
               <MessageBubble

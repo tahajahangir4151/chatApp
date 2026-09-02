@@ -25,6 +25,104 @@
   --tick-seen: #34B7F1;
 }
 
+[data-theme="dark"], body.dark-mode {
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-tertiary: #0B0F19;
+  --border-subtle: #334155;
+  --border-medium: #475569;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --brand-primary: #3B82F6;
+  --brand-hover: #60A5FA;
+  --brand-light: rgba(59, 130, 246, 0.15);
+  --bubble-outgoing: #064E3B;
+  --bubble-outgoing-text: #ECFDF5;
+  --bubble-incoming: #1E293B;
+  --bubble-incoming-text: #F8FAFC;
+  --status-online: #10B981;
+  --status-away: #F59E0B;
+  --status-offline: #64748B;
+  --tick-seen: #38BDF8;
+}
+
+body.dark-mode {
+  background-color: #0F172A !important;
+  color: #F8FAFC !important;
+}
+
+/* Dark mode surface overrides for containers and components */
+body.dark-mode nav,
+body.dark-mode header,
+body.dark-mode .chakra-modal__content,
+body.dark-mode .chakra-menu__menu-list,
+body.dark-mode .chakra-modal__header,
+body.dark-mode .chakra-modal__body {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .chakra-menu__menuitem {
+  background-color: transparent !important;
+  color: #E2E8F0 !important;
+}
+
+body.dark-mode .chakra-menu__menuitem:hover {
+  background-color: #334155 !important;
+}
+
+body.dark-mode .chat-input-bar input,
+body.dark-mode .chakra-modal__content input,
+body.dark-mode .chakra-drawer__content input,
+body.dark-mode textarea {
+  background-color: #0F172A !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .message-hover-toolbar {
+  background: rgba(30, 41, 59, 0.96) !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .toolbar-action-btn {
+  color: #94A3B8 !important;
+}
+
+body.dark-mode .toolbar-action-btn:hover {
+  background: #334155 !important;
+  color: #60A5FA !important;
+}
+
+body.dark-mode .quoted-reply-card {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-left-color: #3B82F6 !important;
+}
+
+body.dark-mode .chat-file-card {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .chat-audio-player {
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+body.dark-mode .conversation-item:hover {
+  background-color: #1E293B !important;
+}
+
+body.dark-mode .conversation-item.active {
+  background-color: #334155 !important;
+}
+
+body.dark-mode .chat-input-bar {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+}
+
 /* Scrollbar customization */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -43,13 +141,20 @@
 
 /* Messages container */
 .messages {
-  display: flex;
-  flex-direction: column;
-  overflow-y: scroll;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ScrollableFeed container override */
+.messages > div {
+  height: 100% !important;
+  width: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   scrollbar-width: thin;
   scrollbar-color: #CBD5E1 transparent;
-  padding: 12px 16px;
-  gap: 4px;
 }
 
 /* Message Wrapper */
@@ -57,8 +162,31 @@
   position: relative;
   display: flex;
   align-items: flex-end;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   transition: background-color 0.15s ease;
+}
+
+/* Image & Video Media Attachments */
+.chat-media-image {
+  max-width: 100%;
+  max-height: 380px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  cursor: pointer;
+  display: block;
+}
+
+.chat-media-video {
+  max-width: 100%;
+  max-height: 380px;
+  width: 100%;
+  border-radius: 12px;
+  display: block;
 }
 
 .message-wrapper:hover .message-hover-toolbar {
@@ -241,6 +369,58 @@
   }
 }
 
+/* Voice Recorder Bar (WhatsApp Style) */
+.voice-recorder-bar {
+  border-top: 1px solid #E2E8F0;
+  user-select: none;
+}
+
+body.dark-mode .voice-recorder-bar {
+  background: #1E293B !important;
+  border-top-color: #334155 !important;
+}
+
+.recording-pulse-dot {
+  animation: recBlink 1s infinite alternate ease-in-out;
+}
+
+@keyframes recBlink {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(1.18);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+/* WhatsApp Voice Player */
+.whatsapp-voice-player {
+  padding: 4px 6px;
+  border-radius: 12px;
+}
+
+.whatsapp-voice-play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform 0.12s ease;
+  flex-shrink: 0;
+}
+
+.whatsapp-voice-play-btn:hover {
+  transform: scale(1.08);
+}
+
 /* Audio Player inside Message */
 .chat-audio-player {
   display: flex;
@@ -288,6 +468,255 @@
   align-items: center;
   margin-left: 4px;
   vertical-align: middle;
+}
+
+.status-tick-pending {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: middle;
+  animation: pendingPulse 2.2s infinite ease-in-out;
+}
+
+@keyframes pendingPulse {
+  0%, 100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================
+   AUTHENTICATION EXPERIENCE (LOGIN & SIGNUP)
+   Modern Glassmorphism, Ambient Glow, Sleek Inputs & Pills
+   ========================================================== */
+
+.auth-page-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #0B0F19;
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(37, 99, 235, 0.35) 0px, transparent 50%),
+    radial-gradient(at 85% 85%, rgba(124, 58, 237, 0.3) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.18) 0px, transparent 50%);
+  overflow-y: auto;
+  padding: 30px 16px;
+  box-sizing: border-box;
+}
+
+.auth-ambient-glow-1 {
+  position: absolute;
+  top: 10%;
+  left: 15%;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-ambient-glow-2 {
+  position: absolute;
+  bottom: 10%;
+  right: 15%;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-glass-card {
+  width: 100%;
+  max-width: 470px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  padding: 32px 30px;
+  position: relative;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.auth-logo-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+  margin-bottom: 10px;
+}
+
+.auth-tab-bar {
+  display: flex;
+  background: #F1F5F9;
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 22px;
+  position: relative;
+}
+
+/* Auth Card Form Inputs */
+.auth-glass-card input {
+  background-color: #F8FAFC !important;
+  border: 1.5px solid #E2E8F0 !important;
+  color: #0F172A !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.auth-glass-card input:hover {
+  background-color: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+}
+
+.auth-glass-card input:focus {
+  background-color: #FFFFFF !important;
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+.auth-glass-card input::placeholder {
+  color: #94A3B8 !important;
+  opacity: 1 !important;
+}
+
+.auth-glass-card .chakra-input__left-element {
+  color: #64748B !important;
+}
+
+.auth-glass-card .chakra-input__right-element button {
+  color: #64748B !important;
+}
+
+.auth-glass-card .chakra-input__right-element button:hover {
+  color: #2563EB !important;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748B;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-tab-btn.active {
+  background: white;
+  color: #1E293B;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.auth-btn-primary {
+  width: 100%;
+  padding: 11px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
+  transition: all 0.18s ease;
+}
+
+.auth-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.42);
+}
+
+.auth-btn-demo {
+  width: 100%;
+  padding: 9px 12px;
+  background: #F8FAFC;
+  color: #475569;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+}
+
+.auth-btn-demo:hover {
+  background: #EFF6FF;
+  border-color: #3B82F6;
+  color: #2563EB;
+}
+
+.auth-avatar-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px dashed #93C5FD;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #EFF6FF;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.auth-avatar-circle:hover {
+  border-color: #2563EB;
+  transform: scale(1.05);
+}
+
+.auth-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.auth-avatar-circle:hover .auth-avatar-overlay {
+  opacity: 1;
+}
+
+.password-strength-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  border-radius: 6px;
+  padding: 2px 6px;
+  transition: all 0.15s ease;
 }
 
 /* Typing indicator animation */

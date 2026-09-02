@@ -31,10 +31,13 @@ import {
   IoFlagOutline,
   IoLogOutOutline,
   IoDownloadOutline,
+  IoPersonAddOutline,
 } from "react-icons/io5";
+import { useDisclosure } from "@chakra-ui/react";
 import { useChatState } from "../../context/chatProvider";
 import { getSender, getSenderFull } from "../../config/chatLogics";
 import UserAvatar from "../common/UserAvatar";
+import SendInviteModal from "../modals/SendInviteModal";
 
 const ChatInfoPanel = ({
   isOpen,
@@ -48,6 +51,11 @@ const ChatInfoPanel = ({
   const toast = useToast();
 
   const [isMuted, setIsMuted] = useState(false);
+  const {
+    isOpen: isInviteOpen,
+    onOpen: onInviteOpen,
+    onClose: onInviteClose,
+  } = useDisclosure();
 
   // Extract shared media (images & videos)
   const sharedMedia = useMemo(() => {
@@ -90,7 +98,8 @@ const ChatInfoPanel = ({
   };
 
   return (
-    <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="sm">
+    <>
+      <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="sm">
       <DrawerOverlay backdropFilter="blur(2px)" />
       <DrawerContent>
         <DrawerCloseButton />
@@ -286,121 +295,141 @@ const ChatInfoPanel = ({
                   )}
                 </TabPanel>
 
-                {/* Group Members (if group chat) */}
+                {/* Group Members Tab */}
                 {isGroup && (
-                  <TabPanel px={0} py={2}>
-                    <VStack spacing={2} align="stretch">
-                      {chat.users?.map((u) => {
-                        const isAdmin = chat.groupAdmin?._id === u._id;
-                        return (
-                          <Flex
-                            key={u._id}
-                            p={2}
-                            borderRadius="8px"
-                            align="center"
-                            justify="space-between"
-                            _hover={{ bg: "gray.50" }}
-                          >
-                            <HStack spacing={2.5}>
-                              <UserAvatar
-                                name={u.name}
-                                src={u.pic}
-                                size="sm"
-                                status={u.status || "online"}
-                              />
-                              <Box>
-                                <Text fontSize="xs" fontWeight="600">
-                                  {u._id === loggedUser?._id ? "You" : u.name}
-                                </Text>
-                                <Text fontSize="10px" color="#94A3B8">
-                                  {u.email}
-                                </Text>
-                              </Box>
-                            </HStack>
-                            {isAdmin && (
-                              <Badge colorScheme="green" fontSize="10px">
-                                Admin
-                              </Badge>
-                            )}
-                          </Flex>
-                        );
-                      })}
-                    </VStack>
-                  </TabPanel>
-                )}
-              </TabPanels>
-            </Tabs>
-          </Box>
+                    <TabPanel px={0} py={2}>
+                      <Button
+                        size="xs"
+                        colorScheme="purple"
+                        variant="outline"
+                        leftIcon={<IoPersonAddOutline size={14} />}
+                        onClick={onInviteOpen}
+                        borderRadius="8px"
+                        w="100%"
+                        mb={2}
+                      >
+                        Invite Member via Email
+                      </Button>
+                      <VStack spacing={2} align="stretch">
+                        {chat.users?.map((u) => {
+                          const isAdmin = chat.groupAdmin?._id === u._id;
+                          return (
+                            <Flex
+                              key={u._id}
+                              p={2}
+                              borderRadius="8px"
+                              align="center"
+                              justify="space-between"
+                              _hover={{ bg: "gray.50" }}
+                            >
+                              <HStack spacing={2.5}>
+                                <UserAvatar
+                                  name={u.name}
+                                  src={u.pic}
+                                  size="sm"
+                                  status={u.status || "online"}
+                                />
+                                <Box>
+                                  <Text fontSize="xs" fontWeight="600">
+                                    {u._id === loggedUser?._id ? "You" : u.name}
+                                  </Text>
+                                  <Text fontSize="10px" color="#94A3B8">
+                                    {u.email}
+                                  </Text>
+                                </Box>
+                              </HStack>
+                              {isAdmin && (
+                                <Badge colorScheme="green" fontSize="10px">
+                                  Admin
+                                </Badge>
+                              )}
+                            </Flex>
+                          );
+                        })}
+                      </VStack>
+                    </TabPanel>
+                  )}
+                </TabPanels>
+              </Tabs>
+            </Box>
 
-          <Divider my={2} />
+            <Divider my={2} />
 
-          {/* Quick Action Options */}
-          <VStack spacing={1} p={3} align="stretch">
-            <Flex
-              align="center"
-              justify="space-between"
-              p={2}
-              borderRadius="8px"
-              _hover={{ bg: "gray.50" }}
-            >
-              <HStack spacing={3}>
-                <IoNotificationsOffOutline size={18} color="#64748B" />
-                <Text fontSize="sm" color="#334155">
-                  Mute Notifications
-                </Text>
-              </HStack>
-              <Switch
-                size="sm"
-                colorScheme="blue"
-                isChecked={isMuted}
-                onChange={(e) => {
-                  setIsMuted(e.target.checked);
-                  handleActionToast(
-                    e.target.checked ? "Notifications muted" : "Notifications unmuted"
-                  );
-                }}
-              />
-            </Flex>
-
-            {!isGroup ? (
-              <>
-                <Button
-                  variant="ghost"
-                  justifyContent="flex-start"
-                  size="sm"
-                  leftIcon={<IoBanOutline size={18} color="#EF4444" />}
-                  color="#EF4444"
-                  onClick={() => handleActionToast("User blocked", "warning")}
-                >
-                  Block User
-                </Button>
-                <Button
-                  variant="ghost"
-                  justifyContent="flex-start"
-                  size="sm"
-                  leftIcon={<IoFlagOutline size={18} color="#EF4444" />}
-                  color="#EF4444"
-                  onClick={() => handleActionToast("User reported", "warning")}
-                >
-                  Report User
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="ghost"
-                justifyContent="flex-start"
-                size="sm"
-                leftIcon={<IoLogOutOutline size={18} color="#EF4444" />}
-                color="#EF4444"
-                onClick={() => handleActionToast("Left group", "warning")}
+            {/* Quick Action Options */}
+            <VStack spacing={1} p={3} align="stretch">
+              <Flex
+                align="center"
+                justify="space-between"
+                p={2}
+                borderRadius="8px"
+                _hover={{ bg: "gray.50" }}
               >
-                Leave Group
-              </Button>
-            )}
-          </VStack>
-        </DrawerBody>
-      </DrawerContent>
-    </Drawer>
+                <HStack spacing={3}>
+                  <IoNotificationsOffOutline size={18} color="#64748B" />
+                  <Text fontSize="sm" color="#334155">
+                    Mute Notifications
+                  </Text>
+                </HStack>
+                <Switch
+                  size="sm"
+                  colorScheme="blue"
+                  isChecked={isMuted}
+                  onChange={(e) => {
+                    setIsMuted(e.target.checked);
+                    handleActionToast(
+                      e.target.checked ? "Notifications muted" : "Notifications unmuted"
+                    );
+                  }}
+                />
+              </Flex>
+
+              {!isGroup ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    justifyContent="flex-start"
+                    size="sm"
+                    leftIcon={<IoBanOutline size={18} color="#EF4444" />}
+                    color="#EF4444"
+                    onClick={() => handleActionToast("User blocked", "warning")}
+                  >
+                    Block User
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    justifyContent="flex-start"
+                    size="sm"
+                    leftIcon={<IoFlagOutline size={18} color="#EF4444" />}
+                    color="#EF4444"
+                    onClick={() => handleActionToast("User reported", "warning")}
+                  >
+                    Report User
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="ghost"
+                  justifyContent="flex-start"
+                  size="sm"
+                  leftIcon={<IoLogOutOutline size={18} color="#EF4444" />}
+                  color="#EF4444"
+                  onClick={() => handleActionToast("Left group", "warning")}
+                >
+                  Leave Group
+                </Button>
+              )}
+            </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Send Invite Modal */}
+      <SendInviteModal
+        isOpen={isInviteOpen}
+        onClose={onInviteClose}
+        defaultChat={chat}
+      />
+    </>
   );
 };
 

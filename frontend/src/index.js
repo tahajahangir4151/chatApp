@@ -5,16 +5,19 @@ import { BrowserRouter as Router } from "react-router-dom";
 import App from "./App";
 import { ChakraProvider } from "@chakra-ui/react";
 import ChatProvider from "./context/chatProvider";
+import { ThemeProvider } from "./context/themeContext";
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Router>
-    <ChatProvider>
-      <ChakraProvider>
-        <App />
-      </ChakraProvider>
-    </ChatProvider>
+    <ThemeProvider>
+      <ChatProvider>
+        <ChakraProvider>
+          <App />
+        </ChakraProvider>
+      </ChatProvider>
+    </ThemeProvider>
   </Router>
 );
 
