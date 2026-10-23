@@ -52,13 +52,14 @@ const MyChats = ({ fetchAgain }) => {
 
   const { selectedChat, setSelectedChat, user, chats, setChats, notification } =
     useChatState();
+  const userData = user?.data || user || {};
   const toast = useToast();
 
   const fetchChats = async () => {
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${user.data.token}`,
+          Authorization: `Bearer ${userData.token}`,
         },
       };
       const { data } = await axios.get("/api/chat", config);
@@ -113,7 +114,7 @@ const MyChats = ({ fetchAgain }) => {
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${user.data.token}`,
+          Authorization: `Bearer ${userData.token}`,
         },
       };
       const { data } = await axios.put("/api/chat/pin", { chatId }, config);
@@ -137,7 +138,7 @@ const MyChats = ({ fetchAgain }) => {
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${user.data.token}`,
+          Authorization: `Bearer ${userData.token}`,
         },
       };
       const { data } = await axios.put("/api/chat/mute", { chatId }, config);
@@ -161,7 +162,7 @@ const MyChats = ({ fetchAgain }) => {
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${user.data.token}`,
+          Authorization: `Bearer ${userData.token}`,
         },
       };
       const { data } = await axios.put(
@@ -185,7 +186,7 @@ const MyChats = ({ fetchAgain }) => {
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${user.data.token}`,
+          Authorization: `Bearer ${userData.token}`,
         },
       };
       await axios.delete(`/api/chat/${chatId}/clear`, config);
@@ -221,7 +222,7 @@ const MyChats = ({ fetchAgain }) => {
     if (filterCategory === "groups") {
       list = list.filter((c) => c.isGroupChat);
     } else if (filterCategory === "favorites") {
-      list = list.filter((c) => c.favorites?.includes(user?.data?._id));
+      list = list.filter((c) => c.favorites?.includes(userData._id));
     } else if (filterCategory === "unread") {
       list = list.filter((c) =>
         notification?.some((n) => n.chat?._id === c._id)
@@ -230,17 +231,18 @@ const MyChats = ({ fetchAgain }) => {
 
     // Sort: Pinned chats first, then by updatedAt
     list.sort((a, b) => {
-      const aPinned = a.pinnedBy?.includes(user?.data?._id) ? 1 : 0;
-      const bPinned = b.pinnedBy?.includes(user?.data?._id) ? 1 : 0;
+      const aPinned = a.pinnedBy?.includes(userData._id) ? 1 : 0;
+      const bPinned = b.pinnedBy?.includes(userData._id) ? 1 : 0;
       if (bPinned !== aPinned) return bPinned - aPinned;
       return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
     });
 
     return list;
-  }, [chats, chatSearch, filterCategory, loggedUser, user, notification]);
+  }, [chats, chatSearch, filterCategory, loggedUser, userData._id, notification]);
 
   return (
     <Box
+      className="glass-panel glass-conversation-panel"
       display={{ base: selectedChat ? "none" : "flex", md: "flex" }}
       flexDirection="column"
       bg="white"
@@ -365,9 +367,9 @@ const MyChats = ({ fetchAgain }) => {
                 ? getSender(loggedUser, chat.users)
                 : chat.chatName;
 
-              const isPinned = chat.pinnedBy?.includes(user?.data?._id);
-              const isMuted = chat.mutedBy?.includes(user?.data?._id);
-              const isFav = chat.favorites?.includes(user?.data?._id);
+              const isPinned = chat.pinnedBy?.includes(userData._id);
+              const isMuted = chat.mutedBy?.includes(userData._id);
+              const isFav = chat.favorites?.includes(userData._id);
 
               const unreadNotifs = notification?.filter(
                 (n) => n.chat?._id === chat._id
@@ -376,7 +378,7 @@ const MyChats = ({ fetchAgain }) => {
 
               // Last message details
               const lastMsg = chat.latestMessage;
-              const isLastMsgMine = lastMsg?.sender?._id === user?.data?._id;
+              const isLastMsgMine = lastMsg?.sender?._id === userData._id;
 
               return (
                 <Box

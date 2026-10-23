@@ -47,8 +47,16 @@ export const allMessages = asyncHandler(async (req, res) => {
 //@route           POST /api/Message/
 //@access          Protected
 export const sendMessage = asyncHandler(async (req, res) => {
-  const { content, chatId, mediaType, fileUrl, fileName, fileSize, replyTo } =
-    req.body;
+  const {
+    content,
+    chatId,
+    mediaType,
+    fileUrl,
+    fileName,
+    fileSize,
+    audioDuration,
+    replyTo,
+  } = req.body;
 
   if ((!content && !fileUrl) || !chatId) {
     console.log("Invalid data passed into request");
@@ -76,6 +84,10 @@ export const sendMessage = asyncHandler(async (req, res) => {
     fileUrl: fileUrl || "",
     fileName: fileName || "",
     fileSize: fileSize || 0,
+    audioDuration:
+      Number.isFinite(Number(audioDuration)) && Number(audioDuration) > 0
+        ? Number(audioDuration)
+        : 0,
     replyTo: replyTo || null,
     status: "sent",
     readBy: [req.user._id],

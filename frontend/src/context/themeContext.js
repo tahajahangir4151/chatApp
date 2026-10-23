@@ -24,10 +24,12 @@ export const ThemeProvider = ({ children }) => {
     const root = document.documentElement;
     if (theme === "dark") {
       root.setAttribute("data-theme", "dark");
+      root.classList.add("dark");
       document.body.classList.add("dark-mode");
       document.body.classList.remove("light-mode");
     } else {
       root.setAttribute("data-theme", "light");
+      root.classList.remove("dark");
       document.body.classList.add("light-mode");
       document.body.classList.remove("dark-mode");
     }

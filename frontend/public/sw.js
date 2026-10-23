@@ -1,4 +1,4 @@
-const CACHE_NAME = "talk-a-tive-cache-v1";
+const CACHE_NAME = "talk-a-tive-cache-v2";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -52,6 +52,12 @@ self.addEventListener("fetch", (event) => {
   }
 
   const url = new URL(request.url);
+  const isUploadedMedia = url.pathname.startsWith("/uploads/");
+  const isStreamingMedia =
+    request.destination === "audio" ||
+    request.destination === "video" ||
+    request.headers.has("range") ||
+    /\.(webm|ogg|mp3|m4a|aac|wav|mp4|mov)(?:$|\?)/i.test(url.pathname);
 
   // Do not intercept or cache WebSocket, Socket.io, or API requests
   if (
@@ -62,8 +68,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Media uploads caching strategy (cache-first for images/videos in /uploads/)
-  if (url.pathname.startsWith("/uploads/")) {
+  // Audio/video players depend on byte-range (206) responses. Never serve
+  // these requests from Cache Storage because a cached full response can
+  // corrupt seeking, duration detection, and incremental playback.
+  if (isUploadedMedia && isStreamingMedia) {
+    return;
+  }
+
+  // Cache uploaded images only; streaming media always stays network-native.
+  if (isUploadedMedia) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cachedResponse = await cache.match(request);

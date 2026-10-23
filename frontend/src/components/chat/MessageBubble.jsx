@@ -134,7 +134,7 @@ const MessageBubble = ({
   return (
     <div
       id={`message-${m._id}`}
-      className="message-wrapper"
+      className={`message-wrapper ${isMe ? "message-sent" : "message-received"}`}
       style={{ justifyContent: isMe ? "flex-end" : "flex-start" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
@@ -256,6 +256,7 @@ const MessageBubble = ({
 
       {/* Main Message Bubble */}
       <Box
+        className={`glass-message ${isMe ? "glass-message-outgoing" : "glass-message-incoming"}`}
         position="relative"
         bg={isMe ? "#DCFCE7" : "#FFFFFF"}
         color={isMe ? "#14532D" : "#0F172A"}
@@ -330,7 +331,11 @@ const MessageBubble = ({
         {/* Audio Message / Voice Note (WhatsApp Style) */}
         {m.mediaType === "audio" && m.fileUrl && (
           <Box mb={m.content ? 2 : 1}>
-            <VoiceNotePlayer audioUrl={m.fileUrl} isMe={isMe} />
+            <VoiceNotePlayer
+              audioUrl={m.fileUrl}
+              isMe={isMe}
+              fallbackDuration={m.audioDuration}
+            />
           </Box>
         )}
 

@@ -25,6 +25,7 @@ import {
 } from "react-icons/io5";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useChatState } from "../../context/chatProvider";
 
 const Login = ({ onSwitchToSignup }) => {
   const [email, setEmail] = useState("");
@@ -37,6 +38,7 @@ const Login = ({ onSwitchToSignup }) => {
   const handleClickShow = () => setShow(!show);
   const toast = useToast();
   const navigate = useNavigate();
+  const { setUser } = useChatState();
 
   const handleResendVerification = async () => {
     if (!unverifiedEmail) return;
@@ -114,6 +116,7 @@ const Login = ({ onSwitchToSignup }) => {
 
       setLoading(false);
       localStorage.setItem("userInfo", JSON.stringify(data));
+      setUser(data);
       navigate("/api/chats");
     } catch (error) {
       if (error.response?.data?.needsVerification) {

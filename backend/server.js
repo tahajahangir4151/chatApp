@@ -22,7 +22,23 @@ ConnectDb();
 
 // Static route for uploaded images and videos
 const __dirname1 = path.resolve();
-app.use("/uploads", express.static(path.join(__dirname1, "backend", "uploads")));
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname1, "backend", "uploads"), {
+    acceptRanges: true,
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+      if (/\.(webm|ogg|mp3|m4a|aac|wav|mp4|mov)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+      }
+      if (/^Voice-Note-.*\.webm$/i.test(path.basename(filePath))) {
+        res.setHeader("Content-Type", "audio/webm");
+      }
+    },
+  })
+);
 
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);

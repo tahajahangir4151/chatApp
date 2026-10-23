@@ -20,7 +20,7 @@ const Chats = () => {
   } = useDisclosure();
 
   return (
-    <Flex direction="column" w="100%" h="100vh" overflow="hidden" bg="#F8FAFC">
+    <Flex direction="column" w="100%" h="100vh" overflow="hidden" className="glass-wallpaper chat-shell">
       {/* Polished Top Navigation Bar */}
       {user && <TopBar onOpenSettings={onSettingsOpen} />}
 
@@ -28,7 +28,7 @@ const Chats = () => {
       <OfflineBanner token={user?.data?.token || user?.token} />
 
       {/* Main 3-Pane Messaging Body */}
-      <Flex flex="1" w="100%" h="calc(100vh - 60px)" overflow="hidden">
+      <Flex flex="1" w="100%" h="calc(100vh - 60px)" overflow="hidden" className="chat-workspace">
         {/* Left Navigation Rail (Collapsible) */}
         {user && (
           <NavSidebar

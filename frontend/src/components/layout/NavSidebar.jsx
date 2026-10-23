@@ -48,6 +48,7 @@ const NavSidebar = ({ activeTab = "chats", onTabChange, onOpenSettings }) => {
   return (
     <Box
       as="nav"
+      className="glass-panel glass-nav-sidebar"
       bg="white"
       borderRight="1px solid"
       borderColor="#E2E8F0"

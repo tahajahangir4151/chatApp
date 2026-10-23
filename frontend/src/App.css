@@ -3,13 +3,14 @@
 .App {
   min-height: 100vh;
   display: flex;
+  background: linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 50%, #E8E8E8 100%);
   background-size: cover;
   background-position: center;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-body.dark-mode .App {
-  background-color: #0F172A;
+.App.dark {
+  background: linear-gradient(135deg, #0F0C20 0%, #15102A 30%, #351C55 70%, #1E0B36 100%);
 }
 
 ::-webkit-scrollbar {

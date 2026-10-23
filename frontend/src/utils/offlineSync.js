@@ -73,6 +73,7 @@ export const syncPendingMessages = async (token, socket) => {
           fileUrl: msg.fileUrl || "",
           fileName: msg.fileName || "",
           fileSize: msg.fileSize || 0,
+          audioDuration: msg.audioDuration || 0,
         };
 
         const { data } = await axios.post("/api/message", payload, config);

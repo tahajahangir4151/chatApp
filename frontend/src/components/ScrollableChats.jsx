@@ -22,7 +22,7 @@ const ScrollableChats = ({
   onDeleteMessage,
 }) => {
   const { user, selectedChat } = useChatState();
-  const currentUserId = user?.data?._id;
+  const currentUserId = (user?.data || user)?._id;
 
   const [lightboxImage, setLightboxImage] = useState(null);
 

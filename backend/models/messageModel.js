@@ -50,6 +50,11 @@ const messageModel = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    audioDuration: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     replyTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",

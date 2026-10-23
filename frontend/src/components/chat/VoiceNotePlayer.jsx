@@ -3,7 +3,6 @@ import {
   Flex,
   Box,
   Text,
-  IconButton,
   Slider,
   SliderTrack,
   SliderFilledTrack,
@@ -17,26 +16,67 @@ import {
 
 const PLAYBACK_SPEEDS = [1, 1.5, 2];
 
-const VoiceNotePlayer = ({ audioUrl, isMe }) => {
+const VoiceNotePlayer = ({ audioUrl, isMe, fallbackDuration = 0 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(
+    Number.isFinite(Number(fallbackDuration)) ? Number(fallbackDuration) : 0
+  );
   const [speedIndex, setSpeedIndex] = useState(0);
 
   const audioRef = useRef(null);
+  const recoveringDurationRef = useRef(false);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
+    const suppliedDuration = Number(fallbackDuration);
+    const hasSuppliedDuration =
+      Number.isFinite(suppliedDuration) && suppliedDuration > 0;
+
+    setCurrentTime(0);
+    setIsPlaying(false);
+    setDuration(
+      hasSuppliedDuration
+        ? suppliedDuration
+        : 0
+    );
+
+    const saveFiniteDuration = () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
         setDuration(audio.duration);
+        if (recoveringDurationRef.current) {
+          recoveringDurationRef.current = false;
+          audio.currentTime = 0;
+        }
+        return true;
+      }
+      return false;
+    };
+
+    const recoverWebmDuration = () => {
+      if (recoveringDurationRef.current || Number.isFinite(audio.duration)) return;
+      recoveringDurationRef.current = true;
+      try {
+        audio.currentTime = Number.MAX_SAFE_INTEGER;
+      } catch (error) {
+        recoveringDurationRef.current = false;
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      // New voice messages carry their measured duration, so do not perform
+      // the extreme WebM seek that can generate failed range requests.
+      if (!saveFiniteDuration() && !hasSuppliedDuration) {
+        recoverWebmDuration();
       }
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
+      if (!recoveringDurationRef.current && Number.isFinite(audio.currentTime)) {
+        setCurrentTime(audio.currentTime);
+      }
     };
 
     const handleEnded = () => {
@@ -44,16 +84,28 @@ const VoiceNotePlayer = ({ audioUrl, isMe }) => {
       setCurrentTime(0);
     };
 
+    const handleError = () => {
+      setIsPlaying(false);
+    };
+
+    const handleDurationChange = () => {
+      saveFiniteDuration();
+    };
+
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("durationchange", handleDurationChange);
 
     return () => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("durationchange", handleDurationChange);
     };
-  }, [audioUrl]);
+  }, [audioUrl, fallbackDuration]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -61,13 +113,15 @@ const VoiceNotePlayer = ({ audioUrl, isMe }) => {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
-      setIsPlaying(true);
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
     }
   };
 
   const handleSliderChange = (val) => {
-    if (!audioRef.current || !duration) return;
+    if (!audioRef.current || !Number.isFinite(duration) || duration <= 0) return;
     const targetTime = (val / 100) * duration;
     audioRef.current.currentTime = targetTime;
     setCurrentTime(targetTime);
@@ -82,13 +136,17 @@ const VoiceNotePlayer = ({ audioUrl, isMe }) => {
   };
 
   const formatTime = (secs) => {
-    if (isNaN(secs) || secs < 0) return "0:00";
+    if (!Number.isFinite(Number(secs)) || Number(secs) < 0) return "0:00";
+    secs = Number(secs);
     const minutes = Math.floor(secs / 60);
     const seconds = Math.floor(secs % 60);
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progressPercent =
+    Number.isFinite(duration) && duration > 0 && Number.isFinite(currentTime)
+      ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
+      : 0;
 
   return (
     <Box className="whatsapp-voice-player" minW={{ base: "220px", sm: "260px" }} py={1}>

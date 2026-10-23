@@ -606,8 +606,15 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   };
 
   // Handle WhatsApp-style voice message recording and sending
-  const handleSendVoiceNote = async (audioFile, durationStr) => {
+  const handleSendVoiceNote = async (audioFile, durationSeconds = 0) => {
     if (!audioFile) return;
+
+    const safeDuration = Number.isFinite(Number(durationSeconds))
+      ? Math.max(0, Math.round(Number(durationSeconds)))
+      : 0;
+    const durationLabel = `${Math.floor(safeDuration / 60)}:${String(
+      safeDuration % 60
+    ).padStart(2, "0")}`;
 
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const previewUrl = URL.createObjectURL(audioFile);
@@ -620,8 +627,9 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       content: "",
       mediaType: "audio",
       fileUrl: previewUrl,
-      fileName: `Voice Note (${durationStr || "0:05"})`,
+      fileName: `Voice Note (${durationLabel})`,
       fileSize: audioFile.size,
+      audioDuration: safeDuration,
       chat: selectedChat,
       createdAt: new Date().toISOString(),
       status: "pending",
@@ -677,8 +685,9 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           chatId: selectedChat._id,
           mediaType: "audio",
           fileUrl,
-          fileName: fileName || `Voice Note (${durationStr || "0:05"})`,
+          fileName: fileName || `Voice Note (${durationLabel})`,
           fileSize,
+          audioDuration: safeDuration,
           replyTo: replyRef,
         },
         messageConfig
@@ -736,7 +745,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   return (
     <>
       {selectedChat ? (
-        <Flex direction="column" w="100%" h="100%" bg="#F8FAFC" overflow="hidden">
+        <Flex direction="column" w="100%" h="100%" bg="#F8FAFC" overflow="hidden" className="single-chat-surface">
           {/* Top Chat Header */}
           <ChatHeader
             chat={selectedChat}
@@ -752,6 +761,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           {/* In-Chat Search Overlay Bar */}
           {showInChatSearch && (
             <Flex
+              className="glass-chat-search"
               px={3}
               py={2}
               bg="white"
@@ -786,7 +796,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           )}
 
           {/* Messages Feed Area */}
-          <Box flex="1" overflow="hidden" position="relative" bg="#F1F5F9">
+          <Box flex="1" overflow="hidden" position="relative" bg="#F1F5F9" className="message-canvas">
             {loading ? (
               <Flex h="100%" align="center" justify="center">
                 <Spinner size="xl" color="blue.500" thickness="3px" />

@@ -70,7 +70,7 @@ const ChatInput = ({
   };
 
   return (
-    <Box position="relative" w="100%" bg="white" className="chat-input-bar">
+    <Box position="relative" w="100%" bg="white" className="chat-input-bar glass-input-panel">
       {/* Hidden Master File Input */}
       <input
         type="file"
@@ -195,6 +195,7 @@ const ChatInput = ({
 
           {/* Text Input Field */}
           <Input
+            className="glass-text-input"
             ref={inputRef}
             value={newMessage}
             onChange={onTyping}
@@ -225,6 +226,7 @@ const ChatInput = ({
 
           {/* Send Button */}
           <IconButton
+            className="send-message-button"
             size="sm"
             colorScheme="blue"
             borderRadius="full"

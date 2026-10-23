@@ -8,6 +8,7 @@ const ChatBox = ({ fetchAgain, setFetchAgain }) => {
 
   return (
     <Box
+      className="glass-panel glass-chat-panel"
       display={{ base: selectedChat ? "flex" : "none", md: "flex" }}
       flex="1"
       h="100%"

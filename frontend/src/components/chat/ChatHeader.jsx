@@ -69,6 +69,7 @@ const ChatHeader = ({
   return (
     <>
       <Flex
+        className="glass-chat-header"
         align="center"
         justify="space-between"
         px={{ base: 2, md: 4 }}

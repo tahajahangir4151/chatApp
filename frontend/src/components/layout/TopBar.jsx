@@ -207,6 +207,7 @@ const TopBar = ({ onOpenSettings }) => {
     <>
       <Flex
         as="header"
+        className="glass-panel glass-topbar"
         align="center"
         justify="space-between"
         bg="white"
