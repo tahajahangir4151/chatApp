@@ -46,21 +46,9 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/invite", inviteRoutes);
 
-// --------------------------deployment------------------------------
-
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname1, "/frontend/build")));
-
-  app.get("*", (req: Request, res: Response) =>
-    res.sendFile(path.resolve(__dirname1, "frontend", "build", "index.html"))
-  );
-} else {
-  app.get("/", (req: Request, res: Response) => {
-    res.send("API is running..");
-  });
-}
-
-// --------------------------deployment------------------------------
+app.get("/", (req: Request, res: Response) => {
+  res.send("Talk-A-Tive API is running...");
+});
 
 app.use(NotFound);
 app.use(errorhandler);
