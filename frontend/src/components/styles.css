@@ -109,8 +109,44 @@ body.dark-mode {
 }
 
 .single-chat-surface,
-.message-canvas {
+.message-canvas,
+.chat-empty-state {
   background: transparent !important;
+}
+
+.chat-empty-icon {
+  background: rgba(37, 99, 235, 0.1) !important;
+  color: #2563EB !important;
+  border: 1px solid rgba(37, 99, 235, 0.15) !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08) !important;
+}
+
+.chat-empty-title {
+  color: var(--text-primary) !important;
+  letter-spacing: -0.3px;
+}
+
+.chat-empty-subtitle {
+  color: var(--text-muted) !important;
+  line-height: 1.5;
+}
+
+body.dark-mode .chat-empty-icon,
+[data-theme="dark"] .chat-empty-icon {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60A5FA !important;
+  border: 1px solid rgba(59, 130, 246, 0.28) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.dark-mode .chat-empty-title,
+[data-theme="dark"] .chat-empty-title {
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .chat-empty-subtitle,
+[data-theme="dark"] .chat-empty-subtitle {
+  color: #94A3B8 !important;
 }
 
 .glass-message {
@@ -247,6 +283,38 @@ body.dark-mode .glass-panel textarea {
 body.dark-mode .glass-panel .chakra-text:not(.quoted-reply-sender),
 body.dark-mode .glass-message .chakra-text {
   color: inherit !important;
+}
+
+body.dark-mode .glass-topbar,
+[data-theme="dark"] .glass-topbar,
+body.dark-mode .glass-topbar .chakra-button,
+[data-theme="dark"] .glass-topbar .chakra-button,
+body.dark-mode .glass-topbar [role="button"],
+[data-theme="dark"] .glass-topbar [role="button"],
+body.dark-mode .glass-topbar .chakra-text,
+[data-theme="dark"] .glass-topbar .chakra-text {
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .glass-topbar .chakra-button[data-active],
+body.dark-mode .glass-topbar .chakra-button[aria-expanded="true"],
+body.dark-mode .glass-topbar [role="button"][data-active],
+body.dark-mode .glass-topbar [role="button"][aria-expanded="true"],
+body.dark-mode .glass-topbar .chakra-menu__menu-button[aria-expanded="true"],
+[data-theme="dark"] .glass-topbar .chakra-button[data-active],
+[data-theme="dark"] .glass-topbar .chakra-button[aria-expanded="true"],
+[data-theme="dark"] .glass-topbar [role="button"][data-active],
+[data-theme="dark"] .glass-topbar [role="button"][aria-expanded="true"],
+[data-theme="dark"] .glass-topbar .chakra-menu__menu-button[aria-expanded="true"] {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .glass-topbar .chakra-button[data-active] .chakra-text,
+body.dark-mode .glass-topbar .chakra-button[aria-expanded="true"] .chakra-text,
+[data-theme="dark"] .glass-topbar .chakra-button[data-active] .chakra-text,
+[data-theme="dark"] .glass-topbar .chakra-button[aria-expanded="true"] .chakra-text {
+  color: #F8FAFC !important;
 }
 
 /* Dark mode surface overrides for containers and components */
@@ -916,6 +984,39 @@ body.dark-mode .voice-recorder-bar {
   border-radius: 6px;
   padding: 2px 6px;
   transition: all 0.15s ease;
+}
+
+/* 6-Digit OTP Verification Input */
+.auth-otp-input {
+  font-family: 'Courier New', Courier, monospace, sans-serif !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: 12px !important;
+  text-align: center !important;
+  padding-left: 20px !important;
+  height: 60px !important;
+  border-radius: 14px !important;
+  background: #F8FAFC !important;
+  border: 2px solid #CBD5E1 !important;
+  color: #0F172A !important;
+  transition: all 0.2s ease !important;
+}
+
+.auth-otp-input:focus {
+  border-color: #2563EB !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
+}
+
+body.dark-mode .auth-otp-input {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border-color: #475569 !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .auth-otp-input:focus {
+  border-color: #60A5FA !important;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2) !important;
 }
 
 /* Typing indicator animation */

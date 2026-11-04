@@ -2,14 +2,18 @@
   "name": "talk-a-tive",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "backend/server.ts",
   "type": "module",
   "scripts": {
-    "start": "node backend/server.js",
-    "server": "nodemon backend/server.js",
-    "client": "npm start --prefix frontend",
+    "start": "tsx backend/server.ts",
+    "server": "tsx watch backend/server.ts",
+    "client": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:email": "tsx backend/config/testEmail.ts",
+    "build:server": "tsc",
+    "build:client": "npm run build --prefix frontend",
+    "build": "npm run build:server && npm run build:client"
   },
   "author": "Taha Rajput",
   "license": "ISC",
@@ -27,5 +31,15 @@
     "nodemailer": "^9.1.1",
     "nodemon": "^3.1.0",
     "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.6",
+    "@types/nodemailer": "^8.0.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
