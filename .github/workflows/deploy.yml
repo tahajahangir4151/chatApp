@@ -1,0 +1,60 @@
+
+name: Deploy Talk-A-Tive to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: talkative-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 45
+
+    steps:
+      - name: Deploy application
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Loading Node.js environment..."
+          export NVM_DIR="/home/ubuntu/.nvm"
+          source "$NVM_DIR/nvm.sh"
+          nvm use 24
+
+          echo "Moving to application directory..."
+          cd /home/ubuntu/apps/chatApp
+
+          echo "Fetching latest code from GitHub..."
+          git fetch origin main
+          git merge --ff-only origin/main
+
+          echo "Installing backend dependencies..."
+          npm ci
+
+          echo "Installing frontend dependencies..."
+          cd frontend
+          npm ci --legacy-peer-deps
+
+          echo "Building Next.js frontend..."
+          NODE_OPTIONS="--max-old-space-size=1536" npm run build
+
+          echo "Restarting backend..."
+          pm2 restart talkative-backend
+
+          echo "Restarting frontend..."
+          pm2 restart talkative-frontend
+
+          echo "Saving PM2 processes..."
+          pm2 save
+
+          echo "Deployment completed successfully!"
