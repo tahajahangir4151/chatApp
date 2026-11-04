@@ -231,12 +231,12 @@ const UpdateGroupChatModal: React.FC<UpdateGroupChatModalProps> = ({
 
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent p={2}>
           <ModalHeader
-            fontSize={"35px"}
-            fontFamily={"Work sans"}
-            display={"flex"}
-            justifyContent={"center"}
+            fontSize="20px"
+            fontWeight="700"
+            display="flex"
+            justifyContent="center"
           >
             {selectedChat.chatName}
           </ModalHeader>

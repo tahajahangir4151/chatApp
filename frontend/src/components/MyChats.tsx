@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import {
   Box,
   Button,
@@ -46,6 +47,13 @@ import ChatLoading from "./ChatLoading";
 import UserAvatar from "./common/UserAvatar";
 import { useTheme } from "../context/themeContext";
 import { IChat, IUser } from "@/types/chat";
+
+const FILTER_TABS = [
+  { id: "all", label: "All" },
+  { id: "unread", label: "Unread" },
+  { id: "groups", label: "Groups" },
+  { id: "favorites", label: "Favorites" },
+];
 
 interface MyChatsProps {
   fetchAgain: boolean;
@@ -257,8 +265,7 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
     >
       <Flex
         px={4}
-        pt={3}
-        pb={2}
+        py={3}
         justify="space-between"
         align="center"
         borderBottom="1px solid"
@@ -276,11 +283,20 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
         <HStack spacing={1}>
           <GroupChatModal>
             <Button
-              size="xs"
+              size="sm"
+              h="34px"
+              px={3.5}
               variant="solid"
               colorScheme="blue"
-              leftIcon={<IoAdd size={16} />}
-              borderRadius="8px"
+              leftIcon={<IoAdd size={18} />}
+              borderRadius="10px"
+              fontWeight="600"
+              fontSize="xs"
+              boxShadow="0 2px 6px rgba(37, 99, 235, 0.25)"
+              _hover={{
+                bg: "#1D4ED8",
+                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.35)",
+              }}
             >
               New Group
             </Button>
@@ -290,7 +306,7 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
 
       <Box px={3} pt={2} pb={1}>
         <InputGroup size="sm">
-          <InputLeftElement pointerEvents="none" color="#94A3B8">
+          <InputLeftElement pointerEvents="none" color={isDark ? "#94A3B8" : "#94A3B8"}>
             <IoSearchOutline size={16} />
           </InputLeftElement>
           <Input
@@ -298,9 +314,13 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
             value={chatSearch}
             onChange={(e) => setChatSearch(e.target.value)}
             borderRadius="10px"
-            bg="#F8FAFC"
-            borderColor="#E2E8F0"
-            _focus={{ bg: "white", borderColor: "#3B82F6" }}
+            bg={isDark ? "rgba(255, 255, 255, 0.08)" : "#F8FAFC"}
+            borderColor={isDark ? "rgba(255, 255, 255, 0.12)" : "#E2E8F0"}
+            color={isDark ? "#F8FAFC" : "#0F172A"}
+            _focus={{
+              bg: isDark ? "rgba(255, 255, 255, 0.12)" : "white",
+              borderColor: "#3B82F6",
+            }}
           />
           {chatSearch && (
             <InputRightElement>
@@ -310,37 +330,85 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
                 icon={<IoCloseCircleOutline size={16} />}
                 onClick={() => setChatSearch("")}
                 aria-label="Clear search"
+                color={isDark ? "#CBD5E1" : "#64748B"}
+                _hover={{ bg: isDark ? "rgba(255, 255, 255, 0.08)" : "#F1F5F9" }}
               />
             </InputRightElement>
           )}
         </InputGroup>
       </Box>
 
-      <Box px={2} pt={1} pb={2}>
-        <Tabs
-          size="sm"
-          variant="soft-rounded"
-          colorScheme="blue"
-          onChange={(index) => {
-            const tabs = ["all", "unread", "groups", "favorites"];
-            setFilterCategory(tabs[index]);
-          }}
-        >
-          <TabList gap={1}>
-            <Tab fontSize="xs" px={3} py={1} borderRadius="8px">
-              All
-            </Tab>
-            <Tab fontSize="xs" px={3} py={1} borderRadius="8px">
-              Unread
-            </Tab>
-            <Tab fontSize="xs" px={3} py={1} borderRadius="8px">
-              Groups
-            </Tab>
-            <Tab fontSize="xs" px={3} py={1} borderRadius="8px">
-              Favorites
-            </Tab>
-          </TabList>
-        </Tabs>
+      <Box px={3} pt={1} pb={2}>
+        <HStack spacing={1}>
+          {FILTER_TABS.map((tab) => {
+            const isActive = filterCategory === tab.id;
+            return (
+              <Box
+                key={tab.id}
+                position="relative"
+                onClick={() => setFilterCategory(tab.id)}
+              >
+                <motion.div
+                  whileTap={{ scale: 0.94 }}
+                  whileHover={{
+                    backgroundColor: !isActive
+                      ? isDark
+                        ? "rgba(255, 255, 255, 0.06)"
+                        : "rgba(0, 0, 0, 0.04)"
+                      : undefined,
+                  }}
+                  style={{
+                    position: "relative",
+                    padding: "5px 12px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive
+                      ? isDark
+                        ? "#FFFFFF"
+                        : "#2563EB"
+                      : isDark
+                      ? "#94A3B8"
+                      : "#64748B",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    transition: "color 0.2s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeFilterPill"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 32,
+                      }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        borderRadius: "8px",
+                        backgroundColor: isDark
+                          ? "rgba(37, 99, 235, 0.45)"
+                          : "#EFF6FF",
+                        boxShadow: isDark
+                          ? "0 2px 8px rgba(37, 99, 235, 0.35), inset 0 0 0 1px rgba(96, 165, 250, 0.3)"
+                          : "0 1px 3px rgba(37, 99, 235, 0.1), inset 0 0 0 1px rgba(37, 99, 235, 0.15)",
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
+
+                  <span style={{ position: "relative", zIndex: 2 }}>
+                    {tab.label}
+                  </span>
+                </motion.div>
+              </Box>
+            );
+          })}
+        </HStack>
       </Box>
 
       <Box

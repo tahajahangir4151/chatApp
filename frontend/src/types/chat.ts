@@ -6,6 +6,7 @@ export interface IUser {
   token?: string;
   bio?: string;
   about?: string;
+  status?: "online" | "away" | "offline";
   isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;

@@ -107,20 +107,29 @@ const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
   return (
     <>
       <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="sm">
-        <DrawerOverlay backdropFilter="blur(2px)" />
-        <DrawerContent>
-          <DrawerCloseButton />
+        <DrawerOverlay
+          bg={isDark ? "rgba(10, 8, 24, 0.75)" : "rgba(15, 23, 42, 0.45)"}
+          backdropFilter="blur(8px)"
+        />
+        <DrawerContent
+          bg={isDark ? "rgba(20, 15, 42, 0.96)" : "white"}
+          backdropFilter="blur(32px) saturate(200%)"
+          borderLeft="1px solid"
+          borderColor={isDark ? "rgba(255, 255, 255, 0.14)" : "rgba(226, 232, 240, 0.9)"}
+        >
+          <DrawerCloseButton color={isDark ? "#94A3B8" : undefined} />
           <DrawerHeader
             borderBottomWidth="1px"
             fontSize="md"
+            fontWeight="700"
             color={isDark ? "#F8FAFC" : "#0F172A"}
-            borderColor={isDark ? "#334155" : "#E2E8F0"}
-            bg={isDark ? "#1E293B" : "white"}
+            borderColor={isDark ? "rgba(255, 255, 255, 0.10)" : "#E2E8F0"}
+            bg="transparent"
           >
             {isGroup ? "Group Information" : "Contact Information"}
           </DrawerHeader>
 
-          <DrawerBody p={0} className="custom-scrollbar" overflowY="auto" bg={isDark ? "#0F172A" : "white"}>
+          <DrawerBody p={0} className="custom-scrollbar" overflowY="auto" bg="transparent">
             <VStack spacing={3} py={6} px={4} bg={isDark ? "rgba(255, 255, 255, 0.03)" : "gray.50"} align="center">
               <UserAvatar
                 name={chatTitle}

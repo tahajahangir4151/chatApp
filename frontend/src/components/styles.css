@@ -317,34 +317,225 @@ body.dark-mode .glass-topbar .chakra-button[aria-expanded="true"] .chakra-text,
   color: #F8FAFC !important;
 }
 
-/* Dark mode surface overrides for containers and components */
-body.dark-mode nav,
-body.dark-mode header,
-body.dark-mode .chakra-modal__content,
+/* ==========================================================
+   GLASSMORPHISM ELEVATION MATRIX: MENUS, MODALS & DRAWERS
+   ========================================================== */
+
+/* Dark Mode - Elevated Menus */
 body.dark-mode .chakra-menu__menu-list,
+[data-theme="dark"] .chakra-menu__menu-list {
+  background: rgba(22, 16, 46, 0.92) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 35px rgba(139, 92, 246, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  color: #F8FAFC !important;
+  padding: 6px !important;
+  overflow: hidden !important;
+}
+
+body.dark-mode .chakra-menu__menuitem,
+[data-theme="dark"] .chakra-menu__menuitem {
+  background: transparent !important;
+  color: #E2E8F0 !important;
+  border-radius: 10px !important;
+  margin: 2px 0 !important;
+  padding: 8px 12px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.dark-mode .chakra-menu__menuitem:hover,
+body.dark-mode .chakra-menu__menuitem:focus,
+[data-theme="dark"] .chakra-menu__menuitem:hover,
+[data-theme="dark"] .chakra-menu__menuitem:focus {
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #FFFFFF !important;
+  transform: translateX(2px) !important;
+}
+
+body.dark-mode .chakra-menu__divider,
+[data-theme="dark"] .chakra-menu__divider {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  margin: 6px 0 !important;
+}
+
+/* Light Mode - Elevated Menus */
+body:not(.dark-mode) .chakra-menu__menu-list,
+[data-theme="light"] .chakra-menu__menu-list {
+  background: rgba(255, 255, 255, 0.94) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+  backdrop-filter: blur(25px) saturate(180%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 18px 45px rgba(31, 38, 135, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  color: #0F172A !important;
+  padding: 6px !important;
+  overflow: hidden !important;
+}
+
+body:not(.dark-mode) .chakra-menu__menuitem,
+[data-theme="light"] .chakra-menu__menuitem {
+  background: transparent !important;
+  color: #334155 !important;
+  border-radius: 10px !important;
+  margin: 2px 0 !important;
+  padding: 8px 12px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body:not(.dark-mode) .chakra-menu__menuitem:hover,
+body:not(.dark-mode) .chakra-menu__menuitem:focus,
+[data-theme="light"] .chakra-menu__menuitem:hover,
+[data-theme="light"] .chakra-menu__menuitem:focus {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #1D4ED8 !important;
+  transform: translateX(2px) !important;
+}
+
+/* Dark Mode - Elevated Modals */
+body.dark-mode .chakra-modal__overlay,
+[data-theme="dark"] .chakra-modal__overlay {
+  background: rgba(10, 8, 24, 0.72) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+body.dark-mode .chakra-modal__content,
+[data-theme="dark"] .chakra-modal__content {
+  background: rgba(22, 16, 46, 0.94) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), 0 0 45px rgba(139, 92, 246, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  color: #F8FAFC !important;
+  overflow: hidden !important;
+}
+
 body.dark-mode .chakra-modal__header,
-body.dark-mode .chakra-modal__body {
-  background-color: #1E293B !important;
-  border-color: #334155 !important;
+body.dark-mode .chakra-modal__body,
+body.dark-mode .chakra-modal__footer,
+[data-theme="dark"] .chakra-modal__header,
+[data-theme="dark"] .chakra-modal__body,
+[data-theme="dark"] .chakra-modal__footer {
+  background: transparent !important;
   color: #F8FAFC !important;
 }
 
-body.dark-mode .chakra-menu__menuitem {
-  background-color: transparent !important;
-  color: #E2E8F0 !important;
+body.dark-mode .chakra-modal__header,
+[data-theme="dark"] .chakra-modal__header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-body.dark-mode .chakra-menu__menuitem:hover {
-  background-color: #334155 !important;
+body.dark-mode .chakra-modal__footer,
+[data-theme="dark"] .chakra-modal__footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
+body.dark-mode .chakra-modal__close-btn,
+[data-theme="dark"] .chakra-modal__close-btn {
+  color: #94A3B8 !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+body.dark-mode .chakra-modal__close-btn:hover,
+[data-theme="dark"] .chakra-modal__close-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+}
+
+body.dark-mode .chakra-modal__content .chakra-form__label,
+[data-theme="dark"] .chakra-modal__content .chakra-form__label {
+  color: #CBD5E1 !important;
+  font-weight: 500 !important;
+}
+
+/* Light Mode - Elevated Modals */
+body:not(.dark-mode) .chakra-modal__overlay,
+[data-theme="light"] .chakra-modal__overlay {
+  background: rgba(15, 23, 42, 0.45) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+body:not(.dark-mode) .chakra-modal__content,
+[data-theme="light"] .chakra-modal__content {
+  background: rgba(255, 255, 255, 0.96) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 25px 60px rgba(31, 38, 135, 0.15), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  color: #0F172A !important;
+  overflow: hidden !important;
+}
+
+/* Dark Mode - Elevated Drawers */
+body.dark-mode .chakra-drawer__content,
+[data-theme="dark"] .chakra-drawer__content {
+  background: rgba(20, 15, 42, 0.95) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6) !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .chakra-drawer__header,
+body.dark-mode .chakra-drawer__body,
+[data-theme="dark"] .chakra-drawer__header,
+[data-theme="dark"] .chakra-drawer__body {
+  background: transparent !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .chakra-drawer__header,
+[data-theme="dark"] .chakra-drawer__header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Inputs in Dark Mode */
 body.dark-mode .chat-input-bar input,
 body.dark-mode .chakra-modal__content input,
+body.dark-mode .chakra-modal__content select,
 body.dark-mode .chakra-drawer__content input,
-body.dark-mode textarea {
-  background-color: #0F172A !important;
-  border-color: #334155 !important;
+body.dark-mode textarea,
+[data-theme="dark"] .chat-input-bar input,
+[data-theme="dark"] .chakra-modal__content input,
+[data-theme="dark"] .chakra-modal__content select,
+[data-theme="dark"] .chakra-drawer__content input,
+[data-theme="dark"] textarea {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 12px !important;
   color: #F8FAFC !important;
+}
+
+body.dark-mode .chakra-modal__content input:hover,
+body.dark-mode .chakra-modal__content select:hover,
+body.dark-mode .chakra-drawer__content input:hover,
+[data-theme="dark"] .chakra-modal__content input:hover,
+[data-theme="dark"] .chakra-modal__content select:hover,
+[data-theme="dark"] .chakra-drawer__content input:hover {
+  background-color: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+}
+
+body.dark-mode .chakra-modal__content input:focus,
+body.dark-mode .chakra-modal__content select:focus,
+body.dark-mode .chakra-drawer__content input:focus,
+[data-theme="dark"] .chakra-modal__content input:focus,
+[data-theme="dark"] .chakra-modal__content select:focus,
+[data-theme="dark"] .chakra-drawer__content input:focus {
+  background-color: rgba(255, 255, 255, 0.10) !important;
+  border: 1.5px solid #60A5FA !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25) !important;
 }
 
 body.dark-mode .message-hover-toolbar {
@@ -376,16 +567,25 @@ body.dark-mode .chat-audio-player {
 }
 
 body.dark-mode .conversation-item:hover {
-  background-color: #1E293B !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 body.dark-mode .conversation-item.active {
-  background-color: #334155 !important;
+  background-color: rgba(59, 130, 246, 0.24) !important;
 }
 
 body.dark-mode .chat-input-bar {
-  background-color: #1E293B !important;
-  border-color: #334155 !important;
+  background-color: rgba(22, 16, 46, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+body.dark-mode .voice-recorder-bar {
+  background: rgba(22, 16, 46, 0.88) !important;
+  border-top-color: rgba(255, 255, 255, 0.12) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
 }
 
 /* Scrollbar customization */
@@ -641,8 +841,10 @@ body.dark-mode .chat-input-bar {
 }
 
 body.dark-mode .voice-recorder-bar {
-  background: #1E293B !important;
-  border-top-color: #334155 !important;
+  background: rgba(22, 16, 46, 0.88) !important;
+  border-top-color: rgba(255, 255, 255, 0.12) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
 }
 
 .recording-pulse-dot {

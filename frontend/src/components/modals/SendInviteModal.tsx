@@ -29,6 +29,7 @@ import {
 } from "react-icons/io5";
 import axios from "axios";
 import { useChatState } from "../../context/chatProvider";
+import { useTheme } from "../../context/themeContext";
 import { IChat } from "@/types/chat";
 
 interface SendInviteModalProps {
@@ -54,6 +55,7 @@ const SendInviteModal: React.FC<SendInviteModalProps> = ({
 
   const toast = useToast();
   const currentToken = user?.data?.token || user?.token;
+  const { isDark } = useTheme();
 
   const handleSendInvite = async () => {
     if (!recipientEmail.trim()) {
@@ -142,23 +144,54 @@ const SendInviteModal: React.FC<SendInviteModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={handleResetAndClose} isCentered size="md">
-      <ModalOverlay backdropFilter="blur(6px)" />
-      <ModalContent borderRadius="20px" p={2}>
+      <ModalOverlay
+        bg={isDark ? "rgba(10, 8, 24, 0.70)" : "rgba(15, 23, 42, 0.4)"}
+        backdropFilter="blur(8px)"
+      />
+      <ModalContent
+        borderRadius="20px"
+        p={2}
+        bg={isDark ? "rgba(22, 16, 46, 0.92)" : "rgba(255, 255, 255, 0.95)"}
+        border="1px solid"
+        borderColor={isDark ? "rgba(255, 255, 255, 0.16)" : "rgba(226, 232, 240, 0.8)"}
+        boxShadow={
+          isDark
+            ? "0 28px 65px rgba(0, 0, 0, 0.8), 0 0 45px rgba(139, 92, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
+            : "0 25px 60px rgba(31, 38, 135, 0.15), inset 0 1px 0 rgba(255, 255, 255, 1)"
+        }
+        backdropFilter="blur(32px) saturate(200%)"
+      >
         <ModalHeader pb={1}>
           <HStack spacing={2}>
             <Box
               p={2}
               borderRadius="12px"
-              bg={isGroup ? "#F3E8FF" : "#EFF6FF"}
-              color={isGroup ? "#7C3AED" : "#2563EB"}
+              bg={
+                isGroup
+                  ? isDark
+                    ? "rgba(124, 58, 237, 0.25)"
+                    : "#F3E8FF"
+                  : isDark
+                  ? "rgba(37, 99, 235, 0.25)"
+                  : "#EFF6FF"
+              }
+              color={
+                isGroup
+                  ? isDark
+                    ? "#C084FC"
+                    : "#7C3AED"
+                  : isDark
+                  ? "#60A5FA"
+                  : "#2563EB"
+              }
             >
               {isGroup ? <IoPeopleOutline size={20} /> : <IoMailOutline size={20} />}
             </Box>
             <Box>
-              <Text fontSize="lg" fontWeight="700">
+              <Text fontSize="lg" fontWeight="700" color={isDark ? "#F8FAFC" : "#0F172A"}>
                 {isGroup ? "Invite to Group" : "Invite to Chat"}
               </Text>
-              <Text fontSize="xs" color="#64748B" fontWeight="400">
+              <Text fontSize="xs" color={isDark ? "#94A3B8" : "#64748B"} fontWeight="400">
                 {isGroup
                   ? `Send an email invite to join "${activeChat?.chatName}"`
                   : "Invite any friend via email to start chatting"}
@@ -166,15 +199,21 @@ const SendInviteModal: React.FC<SendInviteModalProps> = ({
             </Box>
           </HStack>
         </ModalHeader>
-        <ModalCloseButton />
+        <ModalCloseButton color={isDark ? "#94A3B8" : undefined} />
 
         <ModalBody py={4}>
           {!createdInvite ? (
             <VStack spacing={4} align="stretch">
               {isGroup && (
-                <Box p={3} bg="#F8FAFC" borderRadius="12px" border="1px solid #E2E8F0">
+                <Box
+                  p={3}
+                  bg={isDark ? "rgba(255, 255, 255, 0.05)" : "#F8FAFC"}
+                  borderRadius="12px"
+                  border="1px solid"
+                  borderColor={isDark ? "rgba(255, 255, 255, 0.1)" : "#E2E8F0"}
+                >
                   <HStack justify="space-between">
-                    <Text fontSize="xs" fontWeight="600" color="#475569">
+                    <Text fontSize="xs" fontWeight="600" color={isDark ? "#CBD5E1" : "#475569"}>
                       Target Group:
                     </Text>
                     <Badge colorScheme="purple" borderRadius="md" px={2} py={0.5}>
@@ -185,11 +224,16 @@ const SendInviteModal: React.FC<SendInviteModalProps> = ({
               )}
 
               <FormControl isRequired>
-                <FormLabel fontSize="xs" fontWeight="600" color="#475569" mb={1}>
+                <FormLabel
+                  fontSize="xs"
+                  fontWeight="600"
+                  color={isDark ? "#CBD5E1" : "#475569"}
+                  mb={1}
+                >
                   Recipient's Email Address
                 </FormLabel>
                 <InputGroup size="md">
-                  <InputLeftElement pointerEvents="none" color="#94A3B8">
+                  <InputLeftElement pointerEvents="none" color={isDark ? "#94A3B8" : "#94A3B8"}>
                     <IoMailOutline size={18} />
                   </InputLeftElement>
                   <Input
@@ -198,19 +242,24 @@ const SendInviteModal: React.FC<SendInviteModalProps> = ({
                     value={recipientEmail}
                     onChange={(e) => setRecipientEmail(e.target.value)}
                     borderRadius="12px"
-                    bg="#F8FAFC"
+                    bg={isDark ? "rgba(255, 255, 255, 0.07)" : "#F8FAFC"}
+                    borderColor={isDark ? "rgba(255, 255, 255, 0.14)" : "#E2E8F0"}
+                    color={isDark ? "#F8FAFC" : "#0F172A"}
                     fontSize="sm"
-                    _focus={{ borderColor: "#3B82F6", bg: "white" }}
+                    _focus={{
+                      borderColor: "#3B82F6",
+                      bg: isDark ? "rgba(255, 255, 255, 0.12)" : "white",
+                      boxShadow: "0 0 0 1px #3B82F6, 0 0 16px rgba(59, 130, 246, 0.35)",
+                    }}
                     autoFocus
                   />
                 </InputGroup>
-                <Text fontSize="11px" color="#94A3B8" mt={1}>
+                <Text fontSize="11px" color={isDark ? "#94A3B8" : "#94A3B8"} mt={1}>
                   If they don't have an account yet, they will be prompted to create one.
                 </Text>
               </FormControl>
 
               <Button
-                colorScheme="blue"
                 borderRadius="12px"
                 py={5}
                 leftIcon={<IoPaperPlaneOutline size={18} />}
@@ -218,7 +267,16 @@ const SendInviteModal: React.FC<SendInviteModalProps> = ({
                 isLoading={loading}
                 loadingText="Sending Email..."
                 w="100%"
-                boxShadow="0 4px 12px rgba(37, 99, 235, 0.3)"
+                bg="linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)"
+                color="white"
+                fontWeight="600"
+                boxShadow="0 4px 16px rgba(37, 99, 235, 0.4)"
+                _hover={{
+                  bg: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)",
+                  boxShadow: "0 6px 20px rgba(37, 99, 235, 0.55)",
+                  transform: "translateY(-1px)",
+                }}
+                _active={{ transform: "translateY(0)" }}
               >
                 Send Email Invitation
               </Button>

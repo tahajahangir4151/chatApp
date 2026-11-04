@@ -165,7 +165,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
             Cancel
           </Button>
           <Button
-            colorScheme="blue"
+            borderRadius="12px"
+            bg="linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)"
+            color="white"
+            _hover={{ bg: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)" }}
             onClick={handleUpdate}
             isLoading={loading}
           >

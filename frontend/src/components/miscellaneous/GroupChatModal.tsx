@@ -138,12 +138,12 @@ const GroupChatModal: React.FC<GroupChatModalProps> = ({ children }) => {
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent p={2}>
           <ModalHeader
-            fontSize={"35px"}
-            fontFamily={"Work sans"}
-            display={"flex"}
-            justifyContent={"center"}
+            fontSize="20px"
+            fontWeight="700"
+            display="flex"
+            justifyContent="center"
           >
             Create Group Chat
           </ModalHeader>
@@ -192,7 +192,13 @@ const GroupChatModal: React.FC<GroupChatModalProps> = ({ children }) => {
           </ModalBody>
 
           <ModalFooter>
-            <Button colorScheme="blue" onClick={handleSubmit}>
+            <Button
+              borderRadius="12px"
+              bg="linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)"
+              color="white"
+              _hover={{ bg: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)" }}
+              onClick={handleSubmit}
+            >
               Create Chat
             </Button>
           </ModalFooter>
