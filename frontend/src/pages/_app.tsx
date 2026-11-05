@@ -1,13 +1,41 @@
+import { useEffect } from "react";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import { ChakraProvider } from "@chakra-ui/react";
 import ThemeProvider from "../context/themeContext";
 import ChatProvider from "../context/chatProvider";
+import { resetDocumentTitle } from "../utils/notificationService";
 import "../components/styles.css";
 import "../App.css";
 import "../index.css";
 
 export default function App({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .catch((err) => console.log("SW registration skipped:", err));
+      }
+
+      const handleFocus = () => {
+        resetDocumentTitle();
+      };
+      window.addEventListener("focus", handleFocus);
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          resetDocumentTitle();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        window.removeEventListener("focus", handleFocus);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      };
+    }
+  }, []);
+
   return (
     <>
       <Head>

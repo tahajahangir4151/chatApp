@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useChatState } from "../context/chatProvider";
 import {
   Box,
@@ -33,9 +33,18 @@ import {
   getPendingMessages,
   cacheChatMessages,
   getCachedChatMessages,
+  clearCachedMessages,
 } from "../utils/indexedDB";
 import { syncPendingMessages, setupAutoSync } from "../utils/offlineSync";
 import { IChat, IMessage } from "@/types/chat";
+import { cleanAvatarUrl } from "./common/UserAvatar";
+import {
+  isWindowActive,
+  playNotificationChime,
+  showSystemNotification,
+  getMessageSnippet,
+  updateDocumentTitle,
+} from "../utils/notificationService";
 
 const ENDPOINT =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -90,12 +99,75 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     onClose: onInfoClose,
   } = useDisclosure();
 
-  const { user, selectedChat, notification, setNotification } = useChatState();
+  const {
+    user,
+    selectedChat,
+    setSelectedChat,
+    chats,
+    setChats,
+    notification,
+    setNotification,
+  } = useChatState();
   const toast = useToast();
 
   const loggedUser = user?.data || user || {};
   const currentUserId = loggedUser?._id;
   const currentToken = loggedUser?.token;
+
+  const selectedChatRef = useRef(selectedChat);
+  selectedChatRef.current = selectedChat;
+  const activeChatIdRef = useRef<string | null>(null);
+  const currentChatId = selectedChat?._id;
+
+  const updateChatLatestMessage = useCallback(
+    (chatId: string, latestMsg: any) => {
+      if (!chatId || !latestMsg) return;
+
+      setChats((prevChats) => {
+        if (!prevChats) return prevChats;
+        const chatIndex = prevChats.findIndex((c) => c._id === chatId);
+        if (chatIndex === -1) {
+          if (selectedChatRef.current && selectedChatRef.current._id === chatId) {
+            return [
+              {
+                ...selectedChatRef.current,
+                latestMessage: latestMsg,
+                updatedAt: latestMsg?.createdAt || new Date().toISOString(),
+              },
+              ...prevChats,
+            ];
+          }
+          return prevChats;
+        }
+
+        const existingChat = prevChats[chatIndex];
+        const updatedChat = {
+          ...existingChat,
+          latestMessage: latestMsg,
+          updatedAt: latestMsg?.createdAt || new Date().toISOString(),
+        };
+
+        const nextChats = [...prevChats];
+        nextChats.splice(chatIndex, 1);
+        return [updatedChat, ...nextChats];
+      });
+
+      setSelectedChat((prevSelected: any) => {
+        if (prevSelected && prevSelected._id === chatId) {
+          if (prevSelected.latestMessage?._id === latestMsg?._id) {
+            return prevSelected;
+          }
+          return {
+            ...prevSelected,
+            latestMessage: latestMsg,
+            updatedAt: latestMsg?.createdAt || new Date().toISOString(),
+          };
+        }
+        return prevSelected;
+      });
+    },
+    [setChats, setSelectedChat]
+  );
 
   // Initialize Socket.io connection
   useEffect(() => {
@@ -117,62 +189,80 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   }, []);
 
   // Fetch messages for active chat (with IndexedDB offline cache & outbox support)
-  const fetchMessages = useCallback(async () => {
-    if (!selectedChat) return;
+  const fetchMessages = useCallback(
+    async (targetChatId?: string) => {
+      const currentChat = selectedChatRef.current;
+      const chatId = targetChatId || currentChat?._id;
+      if (!chatId) return;
 
-    try {
-      const cached = await getCachedChatMessages(selectedChat._id);
-      const pending = await getPendingMessages(selectedChat._id);
-      if (cached.length > 0 || pending.length > 0) {
-        setMessages([...(cached as IMessage[]), ...(pending as unknown as IMessage[])]);
+      let hasExisting = false;
+      try {
+        const cached = await getCachedChatMessages(chatId);
+        const pending = await getPendingMessages(chatId);
+        if (cached.length > 0 || pending.length > 0) {
+          hasExisting = true;
+          setMessages([...(cached as IMessage[]), ...(pending as unknown as IMessage[])]);
+        }
+      } catch (e) {
+        console.warn("[SingleChat] Error reading cache:", e);
       }
-    } catch (e) {
-      console.warn("[SingleChat] Error reading cache:", e);
-    }
 
-    if (!navigator.onLine) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${currentToken}`,
-        },
-      };
-      setLoading(true);
-      const { data } = await axios.get(
-        `/api/message/${selectedChat._id}`,
-        config
-      );
-
-      await cacheChatMessages(selectedChat._id, data);
-
-      const pending = await getPendingMessages(selectedChat._id);
-      setMessages([...data, ...(pending as unknown as IMessage[])]);
-      setLoading(false);
-
-      if (socket) {
-        socket.emit("join chat", selectedChat._id);
-        socket.emit("mark seen", {
-          chatId: selectedChat._id,
-          userId: currentUserId,
-        });
+      // Only show full loading spinner if we don't have existing or cached messages (WhatsApp behavior)
+      if (!hasExisting) {
+        setLoading(true);
       }
-    } catch (error) {
-      setLoading(false);
-      if (navigator.onLine) {
-        toast({
-          title: "Error Occurred!",
-          description: "Failed to load messages",
-          status: "error",
-          duration: 2000,
-          isClosable: true,
-        });
+
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
       }
-    }
-  }, [selectedChat, currentToken, currentUserId, toast]);
+
+      try {
+        const config = {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        };
+        const { data } = await axios.get(
+          `/api/message/${chatId}`,
+          config
+        );
+
+        await cacheChatMessages(chatId, data);
+
+        const pending = await getPendingMessages(chatId);
+        setMessages([...data, ...(pending as unknown as IMessage[])]);
+        setLoading(false);
+
+        if (data && data.length > 0) {
+          const newest = data[data.length - 1];
+          if (!currentChat?.latestMessage || currentChat.latestMessage._id !== newest._id) {
+            updateChatLatestMessage(chatId, newest);
+          }
+        }
+
+        if (socket) {
+          socket.emit("join chat", chatId);
+          socket.emit("mark seen", {
+            chatId: chatId,
+            userId: currentUserId,
+          });
+        }
+      } catch (error) {
+        setLoading(false);
+        if (navigator.onLine) {
+          toast({
+            title: "Error Occurred!",
+            description: "Failed to load messages",
+            status: "error",
+            duration: 2000,
+            isClosable: true,
+          });
+        }
+      }
+    },
+    [currentToken, currentUserId, toast, updateChatLatestMessage]
+  );
 
   useEffect(() => {
     const handleMessageSynced = (e: any) => {
@@ -202,21 +292,47 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   }, [currentToken]);
 
   useEffect(() => {
-    fetchMessages();
-    selectedChatCompare = selectedChat;
-    setReplyingTo(null);
-    setShowInChatSearch(false);
-    setInChatSearchQuery("");
-  }, [selectedChat, fetchMessages]);
+    if (!currentChatId) {
+      activeChatIdRef.current = null;
+      selectedChatCompare = null;
+      setMessages([]);
+      return;
+    }
+
+    // Only fetch when switching to a different conversation!
+    if (activeChatIdRef.current !== currentChatId) {
+      activeChatIdRef.current = currentChatId;
+      selectedChatCompare = selectedChat;
+      setReplyingTo(null);
+      setShowInChatSearch(false);
+      setInChatSearchQuery("");
+      fetchMessages(currentChatId);
+    } else {
+      selectedChatCompare = selectedChat;
+    }
+  }, [currentChatId, fetchMessages, selectedChat]);
 
   useEffect(() => {
     if (!socket) return;
 
     const handleMessageRecieved = (newMessageRecieved: any) => {
-      if (
+      updateChatLatestMessage(newMessageRecieved.chat?._id, newMessageRecieved);
+
+      const isDifferentChat =
         !selectedChatCompare ||
-        selectedChatCompare._id !== newMessageRecieved.chat._id
-      ) {
+        selectedChatCompare._id !== newMessageRecieved.chat._id;
+      const windowActive = isWindowActive();
+
+      const senderName = newMessageRecieved.sender?.name || "Someone";
+      const isGroup = newMessageRecieved.chat?.isGroupChat;
+      const notifTitle = isGroup
+        ? `${newMessageRecieved.chat?.chatName || "Group"}: ${senderName}`
+        : senderName;
+      const notifSnippet = getMessageSnippet(newMessageRecieved);
+      const isMuted = newMessageRecieved.chat?.mutedBy?.includes(currentUserId);
+      const avatarSrc = cleanAvatarUrl(newMessageRecieved.sender?.pic);
+
+      if (isDifferentChat) {
         if (!notification.includes(newMessageRecieved)) {
           setNotification([newMessageRecieved, ...notification]);
           setFetchAgain(!fetchAgain);
@@ -227,20 +343,70 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
           senderId: newMessageRecieved.sender._id,
           userId: currentUserId,
         });
+
+        if (!isMuted) {
+          playNotificationChime();
+
+          showSystemNotification({
+            title: notifTitle,
+            body: notifSnippet,
+            icon: avatarSrc || "/talkative-logo.png",
+            chatId: newMessageRecieved.chat._id,
+            onClick: () => {
+              setSelectedChat(newMessageRecieved.chat);
+            },
+          });
+
+          if (!windowActive) {
+            updateDocumentTitle(notification.length + 1, notifTitle);
+          }
+        }
       } else {
+        // The chat is open
         setMessages((prev) => [...prev, newMessageRecieved]);
-        socket.emit("mark seen", {
-          chatId: selectedChatCompare._id,
-          userId: currentUserId,
-        });
-        const config = {
-          headers: {
-            Authorization: `Bearer ${currentToken}`,
-          },
-        };
-        axios
-          .put(`/api/message/read/${selectedChatCompare._id}`, {}, config)
-          .catch(() => { });
+
+        if (windowActive) {
+          // Window is open and focused: mark as seen immediately
+          socket.emit("mark seen", {
+            chatId: selectedChatCompare._id,
+            userId: currentUserId,
+          });
+          const config = {
+            headers: {
+              Authorization: `Bearer ${currentToken}`,
+            },
+          };
+          axios
+            .put(`/api/message/read/${selectedChatCompare._id}`, {}, config)
+            .catch(() => { });
+        } else {
+          // Even chat is open, window is NOT opened (minimized / background tab)
+          // Show system notification banner and play chime!
+          socket.emit("message delivered", {
+            messageId: newMessageRecieved._id,
+            chatId: newMessageRecieved.chat._id,
+            senderId: newMessageRecieved.sender._id,
+            userId: currentUserId,
+          });
+
+          if (!isMuted) {
+            playNotificationChime();
+
+            showSystemNotification({
+              title: notifTitle,
+              body: notifSnippet,
+              icon: avatarSrc || "/talkative-logo.png",
+              chatId: newMessageRecieved.chat._id,
+              onClick: () => {
+                try {
+                  window.focus();
+                } catch (e) { }
+              },
+            });
+
+            updateDocumentTitle(1, notifTitle);
+          }
+        }
       }
     };
 
@@ -282,11 +448,36 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
       setMessages((prev) => prev.filter((m) => m._id !== messageId));
     };
 
+    const handleChatCleared = ({ chatId }: any) => {
+      if (selectedChatCompare && selectedChatCompare._id === chatId) {
+        setMessages([]);
+      }
+      setChats((prevChats) =>
+        prevChats.map((c) =>
+          c._id === chatId ? { ...c, latestMessage: null } : c
+        )
+      );
+      setSelectedChat((prev: any) =>
+        prev && prev._id === chatId ? { ...prev, latestMessage: null } : prev
+      );
+      clearCachedMessages(chatId);
+    };
+
+    const handleChatDeleted = ({ chatId }: any) => {
+      if (selectedChatCompare && selectedChatCompare._id === chatId) {
+        setSelectedChat(null);
+      }
+      setChats((prevChats) => prevChats.filter((c) => c._id !== chatId));
+      clearCachedMessages(chatId);
+    };
+
     socket.on("message recieved", handleMessageRecieved);
     socket.on("message reaction updated", handleReactionUpdated);
     socket.on("messages seen", handleMessagesSeen);
     socket.on("message delivered", handleMessageDelivered);
     socket.on("message deleted", handleMessageDeleted);
+    socket.on("chat cleared", handleChatCleared);
+    socket.on("chat deleted", handleChatDeleted);
 
     return () => {
       socket.off("message recieved", handleMessageRecieved);
@@ -294,8 +485,32 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
       socket.off("messages seen", handleMessagesSeen);
       socket.off("message delivered", handleMessageDelivered);
       socket.off("message deleted", handleMessageDeleted);
+      socket.off("chat cleared", handleChatCleared);
+      socket.off("chat deleted", handleChatDeleted);
     };
   });
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (selectedChatCompare && socket && currentToken) {
+        socket.emit("mark seen", {
+          chatId: selectedChatCompare._id,
+          userId: currentUserId,
+        });
+        const config = {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        };
+        axios
+          .put(`/api/message/read/${selectedChatCompare._id}`, {}, config)
+          .catch(() => { });
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => window.removeEventListener("focus", handleWindowFocus);
+  }, [currentToken, currentUserId]);
 
   const handleReaction = async (messageId: string, emoji: string) => {
     try {
@@ -379,10 +594,56 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
         },
       };
       await axios.delete(`/api/chat/${selectedChat._id}/clear`, config);
+      await clearCachedMessages(selectedChat._id);
       setMessages([]);
+
+      setChats((prevChats) =>
+        prevChats.map((c) =>
+          c._id === selectedChat._id ? { ...c, latestMessage: null } : c
+        )
+      );
+
+      setSelectedChat((prev: any) =>
+        prev && prev._id === selectedChat._id ? { ...prev, latestMessage: null } : prev
+      );
+
+      if (socket) {
+        socket.emit("clear chat", { chatId: selectedChat._id });
+      }
+
       toast({ title: "Chat cleared", status: "success", duration: 1500 });
     } catch (err) {
       toast({ title: "Failed to clear chat", status: "error", duration: 1500 });
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+        },
+      };
+      const chatIdToDelete = selectedChat._id;
+      await axios.delete(`/api/chat/${chatIdToDelete}`, config);
+      await clearCachedMessages(chatIdToDelete);
+
+      setChats((prevChats) => prevChats.filter((c) => c._id !== chatIdToDelete));
+      setSelectedChat(null);
+
+      if (socket) {
+        socket.emit("delete chat", { chatId: chatIdToDelete });
+      }
+
+      toast({
+        title: "Chat deleted",
+        description: "Conversation permanently removed",
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({ title: "Failed to delete chat", status: "error", duration: 1500 });
     }
   };
 
@@ -425,6 +686,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     setNewMessage("");
     setReplyingTo(null);
     setMessages((prev) => [...prev, pendingMsg]);
+    updateChatLatestMessage(selectedChat._id, pendingMsg);
 
     if (!navigator.onLine) {
       try {
@@ -463,6 +725,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
       setMessages((prev) =>
         prev.map((m) => (m.tempId === tempId || m._id === tempId ? data : m))
       );
+      updateChatLatestMessage(selectedChat._id, data);
 
       if (socket) {
         socket.emit("new message", data);
@@ -584,6 +847,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
 
       socket.emit("new message", data);
       setMessages((prev) => [...prev, data]);
+      updateChatLatestMessage(selectedChat._id, data);
       cancelMediaUpload();
       setReplyingTo(null);
       setIsUploadingMedia(false);
@@ -630,6 +894,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
 
     setMessages((prev) => [...prev, pendingMsg]);
     setReplyingTo(null);
+    updateChatLatestMessage(selectedChat._id, pendingMsg);
 
     if (!navigator.onLine) {
       try {
@@ -683,6 +948,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
       );
 
       socket.emit("new message", data);
+      updateChatLatestMessage(selectedChat._id, data);
 
       setMessages((prev) =>
         prev.map((m) => (m._id === tempId ? { ...data, status: "sent" } : m))
@@ -739,6 +1005,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             onToggleInfo={onInfoOpen}
             onSearchInChat={() => setShowInChatSearch(!showInChatSearch)}
             onClearChat={handleClearChat}
+            onDeleteChat={handleDeleteChat}
             fetchAgain={fetchAgain}
             setFetchAgain={setFetchAgain}
             fetchMessages={fetchMessages}
@@ -818,6 +1085,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             chat={selectedChat}
             messages={messages}
             onClearChat={handleClearChat}
+            onDeleteChat={handleDeleteChat}
           />
 
           {selectedMedia && (

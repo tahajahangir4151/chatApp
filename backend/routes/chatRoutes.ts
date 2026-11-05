@@ -11,6 +11,7 @@ import {
   toggleMuteChat,
   toggleFavoriteChat,
   clearChatMessages,
+  deleteChat,
 } from "../controllers/chatControllers";
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.route("/pin").put(protect, togglePinChat);
 router.route("/mute").put(protect, toggleMuteChat);
 router.route("/favorite").put(protect, toggleFavoriteChat);
 router.route("/:chatId/clear").delete(protect, clearChatMessages);
+router.route("/:chatId").delete(protect, deleteChat);
 
 export default router;
 

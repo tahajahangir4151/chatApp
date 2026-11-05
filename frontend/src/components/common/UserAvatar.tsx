@@ -1,5 +1,6 @@
 import React from "react";
 import { Avatar, AvatarBadge, Box } from "@chakra-ui/react";
+import { useTheme } from "../../context/themeContext";
 
 export const cleanAvatarUrl = (url?: string): string | undefined => {
   if (!url || typeof url !== "string") return undefined;
@@ -58,6 +59,8 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   cursor = "pointer",
   onClick,
 }) => {
+  const { isDark } = useTheme();
+
   // Status color map
   const statusColorMap: Record<string, string> = {
     online: "#10B981",
@@ -75,6 +78,8 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   const bg = getAvatarBg(name);
   const initials = getInitials(name);
   const cleanSrc = cleanAvatarUrl(src);
+
+  const ringBorderColor = isDark ? "rgba(15, 23, 42, 0.95)" : "white";
 
   return (
     <Box position="relative" display="inline-block" onClick={onClick} cursor={cursor}>
@@ -100,7 +105,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
                     : "12px"
             }
             bg={badgeColor}
-            borderColor="white"
+            borderColor={ringBorderColor}
             borderWidth="2px"
           />
         )}
@@ -109,7 +114,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
           <AvatarBadge
             boxSize="14px"
             bg="#2563EB"
-            borderColor="white"
+            borderColor={ringBorderColor}
             borderWidth="2px"
           >
             <Box className="typing-dots" px="1px">

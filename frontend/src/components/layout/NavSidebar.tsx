@@ -120,7 +120,7 @@ const NavSidebar: React.FC<NavSidebarProps> = ({
                     cursor: "pointer",
                     color: isActive
                       ? isDark
-                        ? "#60A5FA"
+                        ? "#93C5FD"
                         : "#2563EB"
                       : isDark
                       ? "#94A3B8"
@@ -141,12 +141,12 @@ const NavSidebar: React.FC<NavSidebarProps> = ({
                         position: "absolute",
                         inset: 0,
                         borderRadius: "12px",
-                        backgroundColor: isDark
-                          ? "rgba(37, 99, 235, 0.22)"
-                          : "#EFF6FF",
+                        background: isDark
+                          ? "linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(139, 92, 246, 0.22) 100%)"
+                          : "linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(124, 58, 237, 0.10) 100%)",
                         boxShadow: isDark
-                          ? "inset 0 0 0 1px rgba(96, 165, 250, 0.18)"
-                          : "inset 0 0 0 1px rgba(37, 99, 235, 0.12)",
+                          ? "inset 0 0 0 1px rgba(167, 139, 250, 0.35), 0 4px 16px rgba(99, 102, 241, 0.25)"
+                          : "inset 0 0 0 1px rgba(37, 99, 235, 0.2), 0 2px 8px rgba(37, 99, 235, 0.12)",
                         zIndex: 1,
                       }}
                     />
@@ -163,13 +163,13 @@ const NavSidebar: React.FC<NavSidebarProps> = ({
                       style={{
                         position: "absolute",
                         left: "3px",
-                        top: "10px",
-                        bottom: "10px",
+                        top: "9px",
+                        bottom: "9px",
                         width: "3.5px",
                         borderRadius: "9999px",
-                        backgroundColor: isDark ? "#60A5FA" : "#2563EB",
+                        background: "linear-gradient(180deg, #60A5FA 0%, #A78BFA 100%)",
                         boxShadow: isDark
-                          ? "0 0 10px rgba(96, 165, 250, 0.7)"
+                          ? "0 0 12px rgba(167, 139, 250, 0.85)"
                           : "0 0 8px rgba(37, 99, 235, 0.6)",
                         zIndex: 2,
                       }}

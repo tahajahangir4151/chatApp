@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Box,
   Flex,
@@ -10,6 +10,13 @@ import {
   MenuList,
   MenuItem,
   useDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Button,
 } from "@chakra-ui/react";
 import {
   IoSearchOutline,
@@ -19,6 +26,7 @@ import {
   IoArrowBack,
   IoInformationCircleOutline,
   IoTrashOutline,
+  IoCloseCircleOutline,
   IoPersonAddOutline,
 } from "react-icons/io5";
 import { useChatState } from "../../context/chatProvider";
@@ -36,6 +44,7 @@ interface ChatHeaderProps {
   onToggleInfo: () => void;
   onSearchInChat: () => void;
   onClearChat: () => void;
+  onDeleteChat?: () => void;
   fetchAgain: boolean;
   setFetchAgain: React.Dispatch<React.SetStateAction<boolean>>;
   fetchMessages: () => void;
@@ -47,6 +56,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleInfo,
   onSearchInChat,
   onClearChat,
+  onDeleteChat,
   fetchAgain,
   setFetchAgain,
   fetchMessages,
@@ -61,11 +71,27 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     onOpen: onCallOpen,
     onClose: onCallClose,
   } = useDisclosure();
+
   const {
     isOpen: isInviteOpen,
     onOpen: onInviteOpen,
     onClose: onInviteClose,
   } = useDisclosure();
+
+  const {
+    isOpen: isClearAlertOpen,
+    onOpen: onOpenClearAlert,
+    onClose: onCloseClearAlert,
+  } = useDisclosure();
+
+  const {
+    isOpen: isDeleteAlertOpen,
+    onOpen: onOpenDeleteAlert,
+    onClose: onCloseDeleteAlert,
+  } = useDisclosure();
+
+  const cancelClearRef = useRef<any>();
+  const cancelDeleteRef = useRef<any>();
 
   if (!chat) return null;
 
@@ -234,16 +260,110 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <MenuItem
                 icon={<IoTrashOutline size={16} />}
                 borderRadius="8px"
-                color="#EF4444"
-                _hover={{ bg: "#FEE2E2", color: "#B91C1C" }}
-                onClick={onClearChat}
+                color="#F59E0B"
+                _hover={{ bg: isDark ? "rgba(245, 158, 11, 0.15)" : "#FEF3C7" }}
+                onClick={onOpenClearAlert}
               >
                 Clear Messages
               </MenuItem>
+
+              {onDeleteChat && (
+                <MenuItem
+                  icon={<IoCloseCircleOutline size={16} />}
+                  borderRadius="8px"
+                  color="#EF4444"
+                  _hover={{ bg: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2", color: "#B91C1C" }}
+                  onClick={onOpenDeleteAlert}
+                >
+                  Delete Chat
+                </MenuItem>
+              )}
             </MenuList>
           </Menu>
         </HStack>
       </Flex>
+
+      {/* Clear Messages Confirmation Alert */}
+      <AlertDialog
+        isOpen={isClearAlertOpen}
+        leastDestructiveRef={cancelClearRef}
+        onClose={onCloseClearAlert}
+        isCentered
+      >
+        <AlertDialogOverlay bg="rgba(0,0,0,0.6)" backdropFilter="blur(6px)">
+          <AlertDialogContent
+            borderRadius="16px"
+            bg={isDark ? "rgba(22, 16, 46, 0.95)" : "white"}
+            color={isDark ? "#F8FAFC" : "#0F172A"}
+            border="1px solid"
+            borderColor={isDark ? "rgba(255, 255, 255, 0.14)" : "#E2E8F0"}
+          >
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Clear Messages
+            </AlertDialogHeader>
+            <AlertDialogBody fontSize="sm" color={isDark ? "#CBD5E1" : "#475569"}>
+              Are you sure you want to clear all messages in this conversation? The chat will remain in your conversation list.
+            </AlertDialogBody>
+            <AlertDialogFooter gap={2}>
+              <Button ref={cancelClearRef} onClick={onCloseClearAlert} size="sm" borderRadius="8px">
+                Cancel
+              </Button>
+              <Button
+                colorScheme="orange"
+                onClick={() => {
+                  onClearChat();
+                  onCloseClearAlert();
+                }}
+                size="sm"
+                borderRadius="8px"
+              >
+                Clear Messages
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Delete Chat Confirmation Alert */}
+      <AlertDialog
+        isOpen={isDeleteAlertOpen}
+        leastDestructiveRef={cancelDeleteRef}
+        onClose={onCloseDeleteAlert}
+        isCentered
+      >
+        <AlertDialogOverlay bg="rgba(0,0,0,0.6)" backdropFilter="blur(6px)">
+          <AlertDialogContent
+            borderRadius="16px"
+            bg={isDark ? "rgba(22, 16, 46, 0.95)" : "white"}
+            color={isDark ? "#F8FAFC" : "#0F172A"}
+            border="1px solid"
+            borderColor={isDark ? "rgba(255, 255, 255, 0.14)" : "#E2E8F0"}
+          >
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Conversation
+            </AlertDialogHeader>
+            <AlertDialogBody fontSize="sm" color={isDark ? "#CBD5E1" : "#475569"}>
+              Are you sure you want to delete this chat with <Text as="span" fontWeight="bold">{chatTitle}</Text>? This conversation and all its messages will be permanently removed.
+            </AlertDialogBody>
+            <AlertDialogFooter gap={2}>
+              <Button ref={cancelDeleteRef} onClick={onCloseDeleteAlert} size="sm" borderRadius="8px">
+                Cancel
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={() => {
+                  if (onDeleteChat) onDeleteChat();
+                  onCloseDeleteAlert();
+                }}
+                size="sm"
+                borderRadius="8px"
+              >
+                Delete Chat
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
       <CallModal
         isOpen={isCallOpen}

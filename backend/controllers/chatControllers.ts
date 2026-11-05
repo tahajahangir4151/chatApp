@@ -33,7 +33,29 @@ export const accessChat = asyncHandler(async (req: Request, res: Response): Prom
   });
 
   if (isChat.length > 0) {
-    res.send(isChat[0]);
+    const chat = isChat[0];
+    await Chat.findByIdAndUpdate(chat._id, {
+      $pull: { deletedBy: req.user._id },
+    });
+
+    if (chat.latestMessage) {
+      const deletedForList = chat.latestMessage.deletedFor || [];
+      const isDeletedForUser = deletedForList.some(
+        (id: any) => id.toString() === req.user!._id.toString()
+      );
+      if (isDeletedForUser) {
+        const visibleLatest = await Message.findOne({
+          chat: chat._id,
+          deletedFor: { $ne: req.user._id },
+        })
+          .sort({ createdAt: -1 })
+          .populate("sender", "name pic email");
+
+        chat.latestMessage = visibleLatest || null;
+      }
+    }
+
+    res.send(chat);
   } else {
     const chatData = {
       chatName: "sender",
@@ -65,6 +87,7 @@ export const fetchAllChats = asyncHandler(async (req: Request, res: Response): P
   try {
     let results: any = await Chat.find({
       users: { $elemMatch: { $eq: req.user._id } },
+      deletedBy: { $ne: req.user._id },
     })
       .populate("users", "-password")
       .populate("groupAdmin", "-password")
@@ -75,6 +98,26 @@ export const fetchAllChats = asyncHandler(async (req: Request, res: Response): P
       path: "latestMessage.sender",
       select: "name pic email",
     });
+
+    for (let i = 0; i < results.length; i++) {
+      const chat = results[i];
+      if (chat.latestMessage) {
+        const deletedForList = chat.latestMessage.deletedFor || [];
+        const isDeletedForUser = deletedForList.some(
+          (id: any) => id.toString() === req.user!._id.toString()
+        );
+        if (isDeletedForUser) {
+          const visibleMsg = await Message.findOne({
+            chat: chat._id,
+            deletedFor: { $ne: req.user!._id },
+          })
+            .sort({ createdAt: -1 })
+            .populate("sender", "name pic email");
+
+          chat.latestMessage = visibleMsg || null;
+        }
+      }
+    }
 
     res.status(200).send(results);
   } catch (error: any) {
@@ -296,6 +339,110 @@ export const clearChatMessages = asyncHandler(async (req: Request, res: Response
     { $addToSet: { deletedFor: req.user._id } }
   );
 
+  // Check if latestMessage is deleted for this user
+  const chat = await Chat.findById(chatId).populate("latestMessage");
+  if (chat && chat.latestMessage) {
+    const latestMsgDoc: any = chat.latestMessage;
+    const isDeletedForUser = latestMsgDoc.deletedFor?.some(
+      (id: any) => id.toString() === req.user!._id.toString()
+    );
+    if (isDeletedForUser) {
+      const remainingVisible = await Message.findOne({
+        chat: chatId,
+        deletedFor: { $ne: req.user._id },
+      }).sort({ createdAt: -1 });
+
+      if (remainingVisible) {
+        await Chat.findByIdAndUpdate(chatId, { latestMessage: remainingVisible._id });
+      } else {
+        await Chat.findByIdAndUpdate(chatId, { $unset: { latestMessage: 1 } });
+      }
+    }
+  }
+
   res.json({ success: true, message: "Chat messages cleared" });
+});
+
+export const deleteChat = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) {
+    res.status(401);
+    throw new Error("Unauthorized");
+  }
+
+  const { chatId } = req.params;
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    res.status(404);
+    throw new Error("Chat not found");
+  }
+
+  const isMember = chat.users.some(
+    (u) => u.toString() === req.user!._id.toString()
+  );
+  if (!isMember) {
+    res.status(403);
+    throw new Error("You are not a member of this chat");
+  }
+
+  if (chat.isGroupChat) {
+    // If group admin, permanently delete group and all messages
+    if (chat.groupAdmin && chat.groupAdmin.toString() === req.user._id.toString()) {
+      await Message.deleteMany({ chat: chatId });
+      await Chat.findByIdAndDelete(chatId);
+      res.json({
+        success: true,
+        message: "Group deleted successfully",
+        chatId,
+        deletedCompletely: true,
+      });
+      return;
+    } else {
+      // Non-admin member leaving/removing group from their list
+      await Message.updateMany(
+        { chat: chatId },
+        { $addToSet: { deletedFor: req.user._id } }
+      );
+      await Chat.findByIdAndUpdate(chatId, {
+        $pull: { users: req.user._id },
+        $addToSet: { deletedBy: req.user._id },
+      });
+      res.json({
+        success: true,
+        message: "Removed from group",
+        chatId,
+        deletedCompletely: false,
+      });
+      return;
+    }
+  } else {
+    // Direct 1-on-1 chat:
+    await Message.updateMany(
+      { chat: chatId },
+      { $addToSet: { deletedFor: req.user._id } }
+    );
+
+    const updated = await Chat.findByIdAndUpdate(
+      chatId,
+      { $addToSet: { deletedBy: req.user._id } },
+      { new: true }
+    );
+
+    // If both users have deleted this chat, purge it completely from MongoDB
+    const remainingUsers = updated?.users.filter(
+      (u) => !updated.deletedBy.some((d) => d.toString() === u.toString())
+    );
+
+    if (!remainingUsers || remainingUsers.length === 0) {
+      await Message.deleteMany({ chat: chatId });
+      await Chat.findByIdAndDelete(chatId);
+    }
+
+    res.json({
+      success: true,
+      message: "Chat deleted",
+      chatId,
+      deletedCompletely: true,
+    });
+  }
 });
 

@@ -11,6 +11,7 @@ export interface IChat extends Document {
   pinnedBy: Types.ObjectId[];
   mutedBy: Types.ObjectId[];
   favorites: Types.ObjectId[];
+  deletedBy: Types.ObjectId[];
   description?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -53,6 +54,12 @@ const chatSchema = new Schema<IChat>(
       },
     ],
     favorites: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    deletedBy: [
       {
         type: Schema.Types.ObjectId,
         ref: "User",

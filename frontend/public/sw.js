@@ -1,9 +1,10 @@
-const CACHE_NAME = "talk-a-tive-cache-v2";
+const CACHE_NAME = "talk-a-tive-cache-v3";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
   "/favicon.ico",
+  "/talkative-logo.png",
   "/logo192.png",
   "/logo512.png",
 ];
@@ -126,5 +127,31 @@ self.addEventListener("fetch", (event) => {
 
       return cachedResponse || fetchPromise;
     })
+  );
+});
+
+
+// Notification Click Event - Focus or Open Window like WhatsApp Web
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const chatId = event.notification.data ? event.notification.data.chatId : null;
+  const targetUrl = chatId ? `/chats?chatId=${chatId}` : "/chats";
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ("focus" in client) {
+            if (chatId && "postMessage" in client) {
+              client.postMessage({ type: "SELECT_CHAT", chatId });
+            }
+            return client.focus();
+          }
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl);
+        }
+      })
   );
 });

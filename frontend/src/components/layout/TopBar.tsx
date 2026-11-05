@@ -354,52 +354,67 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenSettings }) => {
 
           <Menu>
             <MenuButton
-              as={IconButton}
-              size="sm"
-              variant="ghost"
+              as={Box}
+              cursor="pointer"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              w="36px"
+              h="36px"
+              minW="36px"
+              p={0}
+              m={0}
+              borderRadius="10px"
               color={isDark ? "#CBD5E1" : "#64748B"}
-              bg="transparent"
+              bg={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)"}
+              border="1px solid"
+              borderColor={isDark ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.08)"}
+              transition="all 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
               _hover={{
-                bg: isDark ? "rgba(255, 255, 255, 0.08)" : "#F1F5F9",
+                bg: isDark ? "rgba(255, 255, 255, 0.12)" : "#F1F5F9",
                 color: isDark ? "#60A5FA" : "#2563EB",
-              }}
-              _active={{
-                bg: isDark ? "rgba(255, 255, 255, 0.14)" : "#E2E8F0",
-                color: isDark ? "#60A5FA" : "#2563EB",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.22)" : "#CBD5E1",
               }}
               _expanded={{
-                bg: isDark ? "rgba(255, 255, 255, 0.14)" : "#E2E8F0",
+                bg: isDark ? "rgba(59, 130, 246, 0.20)" : "#EFF6FF",
                 color: isDark ? "#60A5FA" : "#2563EB",
+                borderColor: isDark ? "rgba(96, 165, 250, 0.45)" : "#93C5FD",
+                boxShadow: isDark ? "0 0 14px rgba(59, 130, 246, 0.3)" : "none",
               }}
-              _focus={{ boxShadow: "none" }}
-              aria-label="Notifications"
               position="relative"
-              icon={
-                <>
-                  <IoNotificationsOutline size={20} />
-                  {notification?.length > 0 && (
-                    <Badge
-                      position="absolute"
-                      top="2px"
-                      right="2px"
-                      bg="#EF4444"
-                      color="white"
-                      borderRadius="full"
-                      fontSize="10px"
-                      px="4px"
-                      py="1px"
-                    >
-                      {notification.length}
-                    </Badge>
-                  )}
-                </>
-              }
-            />
+              aria-label="Notifications"
+            >
+              <Flex
+                align="center"
+                justify="center"
+                w="100%"
+                h="100%"
+                position="relative"
+              >
+                <IoNotificationsOutline size={20} />
+                {notification?.length > 0 && (
+                  <Badge
+                    position="absolute"
+                    top="-4px"
+                    right="-4px"
+                    bg="#EF4444"
+                    color="white"
+                    borderRadius="full"
+                    fontSize="10px"
+                    px="5px"
+                    py="1px"
+                    boxShadow="0 2px 6px rgba(239, 68, 68, 0.4)"
+                  >
+                    {notification.length}
+                  </Badge>
+                )}
+              </Flex>
+            </MenuButton>
             <MenuList
-              minW="260px"
+              minW="280px"
               borderRadius="16px"
-              p={2}
-              bg={isDark ? "rgba(22, 16, 46, 0.92)" : "rgba(255, 255, 255, 0.92)"}
+              p={3}
+              bg={isDark ? "rgba(22, 16, 46, 0.95)" : "rgba(255, 255, 255, 0.96)"}
               borderColor={isDark ? "rgba(255, 255, 255, 0.16)" : "rgba(226, 232, 240, 0.8)"}
               backdropFilter="blur(28px) saturate(190%)"
               boxShadow={
@@ -409,64 +424,135 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenSettings }) => {
               }
               color={isDark ? "#F8FAFC" : "inherit"}
             >
-              <Text px={3} py={1} fontSize="xs" fontWeight="700" color={isDark ? "#94A3B8" : "#94A3B8"}>
-                NOTIFICATIONS
-              </Text>
-              {!notification?.length && (
-                <Text px={3} py={2} fontSize="sm" color={isDark ? "#94A3B8" : "#64748B"}>
-                  No new messages
-                </Text>
-              )}
-              {notification?.map((notif) => (
-                <MenuItem
-                  key={notif._id}
-                  borderRadius="8px"
-                  py={2}
-                  bg="transparent"
-                  _hover={{ bg: isDark ? "rgba(255, 255, 255, 0.08)" : "#F8FAFC" }}
-                  onClick={() => {
-                    setSelectedChat(notif.chat);
-                    setNotification(notification.filter((n) => n !== notif));
-                  }}
-                >
-                  <Box>
-                    <Text fontSize="sm" fontWeight="600" color={isDark ? "#F8FAFC" : "#0F172A"}>
-                      {notif.chat?.isGroupChat
-                        ? notif.chat.chatName
-                        : getSender(user, notif.chat?.users || [])}
-                    </Text>
-                    <Text fontSize="xs" color={isDark ? "#94A3B8" : "#64748B"} noOfLines={1}>
-                      {notif.content || "Sent an attachment"}
-                    </Text>
+              <Flex
+                align="center"
+                justify="space-between"
+                px={2}
+                pb={2}
+                mb={1}
+                borderBottom="1px solid"
+                borderColor={isDark ? "rgba(255, 255, 255, 0.08)" : "#F1F5F9"}
+              >
+                <HStack spacing={2}>
+                  <Box color={isDark ? "#818CF8" : "#2563EB"}>
+                    <IoNotificationsOutline size={16} />
                   </Box>
-                </MenuItem>
-              ))}
+                  <Text
+                    fontSize="xs"
+                    fontWeight="700"
+                    letterSpacing="0.5px"
+                    color={isDark ? "#CBD5E1" : "#475569"}
+                  >
+                    NOTIFICATIONS
+                  </Text>
+                </HStack>
+                {notification?.length > 0 && (
+                  <Badge colorScheme="purple" borderRadius="full" fontSize="10px" px={2}>
+                    {notification.length} new
+                  </Badge>
+                )}
+              </Flex>
+
+              {!notification?.length ? (
+                <Flex direction="column" align="center" justify="center" py={5} px={3}>
+                  <Box color={isDark ? "#64748B" : "#94A3B8"} mb={2}>
+                    <IoChatbubblesOutline size={28} />
+                  </Box>
+                  <Text fontSize="xs" fontWeight="600" color={isDark ? "#CBD5E1" : "#64748B"}>
+                    All caught up!
+                  </Text>
+                  <Text fontSize="11px" color={isDark ? "#64748B" : "#94A3B8"}>
+                    No new messages at this time
+                  </Text>
+                </Flex>
+              ) : (
+                notification.map((notif) => (
+                  <MenuItem
+                    key={notif._id}
+                    borderRadius="10px"
+                    py={2.5}
+                    px={3}
+                    my={1}
+                    bg="transparent"
+                    _hover={{
+                      bg: isDark ? "rgba(255, 255, 255, 0.09)" : "#F8FAFC",
+                    }}
+                    onClick={() => {
+                      setSelectedChat(notif.chat);
+                      setNotification(notification.filter((n) => n !== notif));
+                    }}
+                  >
+                    <Box>
+                      <Text fontSize="sm" fontWeight="600" color={isDark ? "#F8FAFC" : "#0F172A"}>
+                        {notif.chat?.isGroupChat
+                          ? notif.chat.chatName
+                          : getSender(user, notif.chat?.users || [])}
+                      </Text>
+                      <Text fontSize="xs" color={isDark ? "#94A3B8" : "#64748B"} noOfLines={1}>
+                        {notif.content || "Sent an attachment"}
+                      </Text>
+                    </Box>
+                  </MenuItem>
+                ))
+              )}
             </MenuList>
           </Menu>
 
           <IconButton
-            size="sm"
+            w="36px"
+            h="36px"
+            minW="36px"
+            p={0}
+            m={0}
             variant="ghost"
+            display="inline-flex"
+            alignItems="center"
+            justifyContent="center"
             color={isDark ? "#CBD5E1" : "#64748B"}
+            bg={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)"}
+            border="1px solid"
+            borderColor={isDark ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.08)"}
+            borderRadius="10px"
             _hover={{
-              bg: isDark ? "rgba(255, 255, 255, 0.08)" : "#EFF6FF",
+              bg: isDark ? "rgba(255, 255, 255, 0.12)" : "#EFF6FF",
               color: isDark ? "#60A5FA" : "#2563EB",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.22)" : "#CBD5E1",
             }}
-            icon={<IoPersonAddOutline size={19} />}
+            icon={
+              <Flex align="center" justify="center" w="100%" h="100%">
+                <IoPersonAddOutline size={19} />
+              </Flex>
+            }
             onClick={onInviteOpen}
             aria-label="Invite friends via email"
             title="Invite friend to chat"
           />
 
           <IconButton
-            size="sm"
+            w="36px"
+            h="36px"
+            minW="36px"
+            p={0}
+            m={0}
             variant="ghost"
+            display="inline-flex"
+            alignItems="center"
+            justifyContent="center"
             color={isDark ? "#F59E0B" : "#64748B"}
+            bg={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)"}
+            border="1px solid"
+            borderColor={isDark ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.08)"}
+            borderRadius="10px"
             _hover={{
-              bg: isDark ? "rgba(255, 255, 255, 0.08)" : "#F1F5F9",
+              bg: isDark ? "rgba(255, 255, 255, 0.12)" : "#F1F5F9",
               color: "#F59E0B",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.22)" : "#CBD5E1",
             }}
-            icon={isDark ? <IoSunnyOutline size={20} color="#F59E0B" /> : <IoMoonOutline size={19} />}
+            icon={
+              <Flex align="center" justify="center" w="100%" h="100%">
+                {isDark ? <IoSunnyOutline size={20} color="#F59E0B" /> : <IoMoonOutline size={19} />}
+              </Flex>
+            }
             onClick={toggleTheme}
             aria-label="Toggle theme mode"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
@@ -474,18 +560,28 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenSettings }) => {
 
           <Menu>
             <MenuButton
-              as={Button}
-              variant="ghost"
-              size="sm"
-              p={1}
-              borderRadius="10px"
-              bg="transparent"
-              _hover={{ bg: isDark ? "rgba(255, 255, 255, 0.08)" : "#F1F5F9" }}
-              _active={{ bg: isDark ? "rgba(255, 255, 255, 0.14)" : "#E2E8F0" }}
-              _expanded={{ bg: isDark ? "rgba(255, 255, 255, 0.14)" : "#E2E8F0" }}
-              _focus={{ boxShadow: "none" }}
+              as={Box}
+              cursor="pointer"
+              px={2.5}
+              py={1.5}
+              borderRadius="12px"
+              bg={isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)"}
+              border="1px solid"
+              borderColor={isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)"}
+              transition="all 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+              _hover={{
+                bg: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.07)",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.14)",
+              }}
+              _expanded={{
+                bg: isDark ? "rgba(139, 92, 246, 0.20)" : "rgba(37, 99, 235, 0.12)",
+                borderColor: isDark ? "rgba(167, 139, 250, 0.5)" : "rgba(59, 130, 246, 0.4)",
+                boxShadow: isDark
+                  ? "0 0 16px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
+                  : "0 0 12px rgba(37, 99, 235, 0.2)",
+              }}
             >
-              <HStack spacing={2}>
+              <HStack spacing={2.5}>
                 <UserAvatar
                   name={userData.name}
                   src={userData.pic}
@@ -500,15 +596,15 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenSettings }) => {
                 >
                   {userData.name}
                 </Text>
-                <IoChevronDown size={12} color={isDark ? "#94A3B8" : "#64748B"} />
+                <IoChevronDown size={13} color={isDark ? "#CBD5E1" : "#64748B"} />
               </HStack>
             </MenuButton>
 
             <MenuList
               borderRadius="16px"
-              p={2}
-              minW="220px"
-              bg={isDark ? "rgba(22, 16, 46, 0.92)" : "rgba(255, 255, 255, 0.94)"}
+              p={2.5}
+              minW="230px"
+              bg={isDark ? "rgba(22, 16, 46, 0.95)" : "rgba(255, 255, 255, 0.95)"}
               borderColor={isDark ? "rgba(255, 255, 255, 0.16)" : "rgba(226, 232, 240, 0.8)"}
               backdropFilter="blur(28px) saturate(190%)"
               boxShadow={

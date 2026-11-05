@@ -20,7 +20,7 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const { setColorMode } = useColorMode();
 
   useEffect(() => {
@@ -31,8 +31,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         setColorMode(saved);
       } else if (
         window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
+        window.matchMedia("(prefers-color-scheme: light)").matches
       ) {
+        setTheme("light");
+        setColorMode("light");
+      } else {
         setTheme("dark");
         setColorMode("dark");
       }

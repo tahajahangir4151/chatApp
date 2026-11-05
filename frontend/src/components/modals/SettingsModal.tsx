@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -27,6 +27,16 @@ import {
   IoMoonOutline,
 } from "react-icons/io5";
 import { useTheme } from "../../context/themeContext";
+import {
+  isSoundEnabled,
+  setSoundEnabled as saveSoundEnabled,
+  isDesktopNotifsEnabled,
+  setDesktopNotifsEnabled as saveDesktopNotifsEnabled,
+  requestNotificationPermission,
+  getNotificationPermission,
+  playNotificationChime,
+  showSystemNotification,
+} from "../../utils/notificationService";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -41,7 +51,60 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [enterToSend, setEnterToSend] = useState(true);
   const toast = useToast();
 
+  useEffect(() => {
+    if (isOpen) {
+      setSoundEnabled(isSoundEnabled());
+      const notifsEnabled = isDesktopNotifsEnabled() && getNotificationPermission() === "granted";
+      setDesktopNotifs(notifsEnabled);
+    }
+  }, [isOpen]);
+
+  const handleToggleDesktopNotifs = async (checked: boolean) => {
+    if (checked) {
+      const perm = await requestNotificationPermission();
+      if (perm === "granted") {
+        setDesktopNotifs(true);
+        saveDesktopNotifsEnabled(true);
+        playNotificationChime();
+        showSystemNotification({
+          title: "Desktop Alerts Enabled",
+          body: "You'll now receive system notifications like WhatsApp.",
+          icon: "/talkative-logo.png",
+        });
+        toast({
+          title: "Desktop Alerts Enabled",
+          description: "Talk-A-Tive will now notify you even when the window is closed or minimized.",
+          status: "success",
+          duration: 3000,
+        });
+      } else {
+        setDesktopNotifs(false);
+        saveDesktopNotifsEnabled(false);
+        toast({
+          title: "Permission Required",
+          description: "Notifications are blocked by your browser. Please allow notifications in site settings.",
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
+      }
+    } else {
+      setDesktopNotifs(false);
+      saveDesktopNotifsEnabled(false);
+    }
+  };
+
+  const handleToggleSound = (checked: boolean) => {
+    setSoundEnabled(checked);
+    saveSoundEnabled(checked);
+    if (checked) {
+      playNotificationChime();
+    }
+  };
+
   const handleSave = () => {
+    saveSoundEnabled(soundEnabled);
+    saveDesktopNotifsEnabled(desktopNotifs);
     toast({
       title: "Settings Saved",
       status: "success",
@@ -135,7 +198,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     <Switch
                       colorScheme="blue"
                       isChecked={soundEnabled}
-                      onChange={(e) => setSoundEnabled(e.target.checked)}
+                      onChange={(e) => handleToggleSound(e.target.checked)}
                     />
                   </HStack>
 
@@ -145,13 +208,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         Desktop Alerts
                       </Text>
                       <Text fontSize="xs" color={isDark ? "#94A3B8" : "#64748B"}>
-                        Show notification popup when unfocused
+                        Show notification popup when window is closed or unfocused
                       </Text>
                     </Box>
                     <Switch
                       colorScheme="blue"
                       isChecked={desktopNotifs}
-                      onChange={(e) => setDesktopNotifs(e.target.checked)}
+                      onChange={(e) => handleToggleDesktopNotifs(e.target.checked)}
                     />
                   </HStack>
                 </VStack>

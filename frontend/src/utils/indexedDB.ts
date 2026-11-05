@@ -215,6 +215,26 @@ export const getCachedChatMessages = async (chatId: string): Promise<IMessage[]>
 };
 
 /**
+ * Remove cached messages for a chat from IndexedDB
+ */
+export const clearCachedMessages = async (chatId: string): Promise<void> => {
+  if (!chatId) return;
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([CACHE_STORE], "readwrite");
+      const store = tx.objectStore(CACHE_STORE);
+      const req = store.delete(chatId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+      tx.oncomplete = () => db.close();
+    });
+  } catch (err) {
+    console.error("[IndexedDB] Error clearing cached messages:", err);
+  }
+};
+
+/**
  * Get count of pending messages waiting to be sent
  */
 export const getPendingCount = async (): Promise<number> => {

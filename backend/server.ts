@@ -124,6 +124,18 @@ io.on("connection", (socket: Socket) => {
     }
   });
 
+  socket.on("clear chat", (clearData: any) => {
+    if (clearData?.chatId) {
+      socket.in(clearData.chatId).emit("chat cleared", clearData);
+    }
+  });
+
+  socket.on("delete chat", (deleteChatData: any) => {
+    if (deleteChatData?.chatId) {
+      socket.in(deleteChatData.chatId).emit("chat deleted", deleteChatData);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected from socket");
   });

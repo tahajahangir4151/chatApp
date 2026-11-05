@@ -207,12 +207,17 @@ const SideDrawer: React.FC = () => {
           )}
 
           <Menu>
-            <MenuButton p={1}>
+            <MenuButton
+              p={1}
+              display="inline-flex"
+              alignItems="center"
+              justifyContent="center"
+            >
               <NotificationBadge
                 count={notification.length}
                 effect={Effect.SCALE}
               />
-              <BellIcon fontSize="2xl" m={1} />
+              <BellIcon fontSize="2xl" m={0} />
             </MenuButton>
             <MenuList pl={2}>
               {!notification.length && "No New Messages"}
@@ -261,18 +266,37 @@ const SideDrawer: React.FC = () => {
       </Box>
 
       <Drawer placement="left" onClose={onClose} isOpen={isOpen}>
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerHeader borderBottomWidth="1px">Search Users</DrawerHeader>
+        <DrawerOverlay backdropFilter="blur(8px)" bg="rgba(10, 8, 24, 0.7)" />
+        <DrawerContent
+          bg="rgba(20, 15, 42, 0.96)"
+          color="#F8FAFC"
+          borderRight="1px solid rgba(255, 255, 255, 0.12)"
+          backdropFilter="blur(24px)"
+        >
+          <DrawerHeader borderBottomWidth="1px" borderColor="rgba(255, 255, 255, 0.1)">
+            Search Users
+          </DrawerHeader>
           <DrawerBody>
-            <Box display="flex" pb={2}>
+            <Box display="flex" pb={3} gap={2}>
               <Input
                 placeholder="Search by name or email"
-                mr={2}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                bg="rgba(255, 255, 255, 0.08)"
+                borderColor="rgba(255, 255, 255, 0.14)"
+                borderRadius="10px"
+                _hover={{ borderColor: "rgba(255, 255, 255, 0.25)" }}
+                _focus={{ borderColor: "#3B82F6" }}
               />
-              <Button onClick={handleSearch}>Go</Button>
+              <Button
+                onClick={handleSearch}
+                bg="linear-gradient(135deg, #3B82F6 0%, #7C3AED 100%)"
+                color="white"
+                borderRadius="10px"
+                _hover={{ bg: "linear-gradient(135deg, #2563EB 0%, #6D28D9 100%)" }}
+              >
+                Search
+              </Button>
             </Box>
             {loading ? (
               <ChatLoading />

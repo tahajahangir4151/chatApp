@@ -33,6 +33,8 @@ import {
   IoLogOutOutline,
   IoDownloadOutline,
   IoPersonAddOutline,
+  IoTrashOutline,
+  IoCloseCircleOutline,
 } from "react-icons/io5";
 import { useChatState } from "../../context/chatProvider";
 import { getSender, getSenderFull } from "../../config/chatLogics";
@@ -47,6 +49,7 @@ interface ChatInfoPanelProps {
   chat: IChat | null;
   messages?: IMessage[];
   onClearChat?: () => void;
+  onDeleteChat?: () => void;
 }
 
 const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
@@ -54,6 +57,8 @@ const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
   onClose,
   chat,
   messages = [],
+  onClearChat,
+  onDeleteChat,
 }) => {
   const { user } = useChatState();
   const { isDark } = useTheme();
@@ -431,6 +436,38 @@ const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
                   onClick={() => handleActionToast("Left group", "warning")}
                 >
                   Leave Group
+                </Button>
+              )}
+
+              {onClearChat && (
+                <Button
+                  variant="ghost"
+                  justifyContent="flex-start"
+                  size="sm"
+                  leftIcon={<IoTrashOutline size={18} color="#F59E0B" />}
+                  color="#F59E0B"
+                  onClick={() => {
+                    onClearChat();
+                    onClose();
+                  }}
+                >
+                  Clear Messages
+                </Button>
+              )}
+
+              {onDeleteChat && (
+                <Button
+                  variant="ghost"
+                  justifyContent="flex-start"
+                  size="sm"
+                  leftIcon={<IoCloseCircleOutline size={18} color="#EF4444" />}
+                  color="#EF4444"
+                  onClick={() => {
+                    onDeleteChat();
+                    onClose();
+                  }}
+                >
+                  Delete Conversation
                 </Button>
               )}
             </VStack>
