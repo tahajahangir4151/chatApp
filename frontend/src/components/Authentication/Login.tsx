@@ -46,6 +46,34 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
   const router = useRouter();
   const { setUser } = useChatState();
 
+  React.useEffect(() => {
+    if (router.query.email) {
+      const qEmail = String(router.query.email);
+      setEmail(qEmail);
+      if (router.query.pwd) {
+        const qPwd = String(router.query.pwd);
+        setPassword(qPwd);
+        if (router.query.auto === "1" || router.query.auto === "true") {
+          const performAutoLogin = async () => {
+            try {
+              setLoading(true);
+              const { data } = await axios.post("/api/user/login", {
+                email: qEmail,
+                password: qPwd,
+              });
+              localStorage.setItem("userInfo", JSON.stringify(data));
+              setUser(data);
+              router.push("/chats");
+            } catch (err: any) {
+              setLoading(false);
+            }
+          };
+          performAutoLogin();
+        }
+      }
+    }
+  }, [router.query, router, setUser]);
+
   const handleResendVerification = async () => {
     if (!unverifiedEmail) return;
     try {

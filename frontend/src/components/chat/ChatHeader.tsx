@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Flex,
@@ -17,9 +17,11 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Button,
+  useToast,
 } from "@chakra-ui/react";
 import {
   IoSearchOutline,
+  IoCall,
   IoCallOutline,
   IoVideocamOutline,
   IoEllipsisVertical,
@@ -30,9 +32,10 @@ import {
   IoPersonAddOutline,
 } from "react-icons/io5";
 import { useChatState } from "../../context/chatProvider";
+import { useCall } from "../../context/callContext";
+import { getSocket } from "../../config/socket";
 import { getSender, getSenderFull } from "../../config/chatLogics";
 import UserAvatar from "../common/UserAvatar";
-import CallModal from "../modals/CallModal";
 import UpdateGroupChatModal from "../miscellaneous/UpdateGroupChatModal";
 import SendInviteModal from "../modals/SendInviteModal";
 import { useTheme } from "../../context/themeContext";
@@ -65,12 +68,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const { isDark } = useTheme();
   const loggedUser = user?.data || user;
 
-  const [callType, setCallType] = useState<"voice" | "video">("voice");
+  const toast = useToast();
   const {
-    isOpen: isCallOpen,
-    onOpen: onCallOpen,
-    onClose: onCallClose,
-  } = useDisclosure();
+    startCall,
+    startGroupCall,
+    joinGroupCall,
+    isInGroupCall,
+    activeGroupCall,
+    activeGroupCallsByChat,
+  } = useCall();
 
   const {
     isOpen: isInviteOpen,
@@ -101,9 +107,39 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     ? getSender(loggedUser, chat.users)
     : chat.chatName;
 
+  const activeGroupCallInfo = isGroup && chat?._id ? activeGroupCallsByChat[chat._id] : null;
+  const isCurrentGroupCallActive =
+    isGroup && isInGroupCall && activeGroupCall?.chatId === chat?._id;
+
+  useEffect(() => {
+    if (isGroup && chat?._id && loggedUser?._id) {
+      const socket = getSocket(loggedUser);
+      socket.emit("group-call:get-status", { chatId: chat._id });
+    }
+  }, [isGroup, chat?._id, loggedUser]);
+
   const handleStartCall = (type: "voice" | "video") => {
-    setCallType(type);
-    onCallOpen();
+    if (isGroup) {
+      if (activeGroupCallInfo) {
+        joinGroupCall(chat._id);
+      } else {
+        startGroupCall(chat);
+      }
+      return;
+    }
+
+    if (!otherUser) {
+      toast({
+        title: "Cannot start call",
+        description: "Recipient user not found.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top",
+      });
+      return;
+    }
+    startCall(otherUser, type);
   };
 
   return (
@@ -179,6 +215,24 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </Flex>
 
         <HStack spacing={1}>
+          {isGroup && activeGroupCallInfo && (
+            <Button
+              size="xs"
+              colorScheme="green"
+              bg="#10B981"
+              color="white"
+              _hover={{ bg: "#059669" }}
+              borderRadius="full"
+              px={3}
+              leftIcon={<IoCall size={12} />}
+              onClick={() => joinGroupCall(chat._id)}
+            >
+              {isCurrentGroupCallActive
+                ? "In Call"
+                : `Join Call (${activeGroupCallInfo.participantsCount})`}
+            </Button>
+          )}
+
           <IconButton
             size="sm"
             variant="ghost"
@@ -192,11 +246,27 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <IconButton
             size="sm"
             variant="ghost"
-            color="#64748B"
-            _hover={{ bg: "#F1F5F9", color: "#2563EB" }}
+            color={isGroup && activeGroupCallInfo ? "#10B981" : "#64748B"}
+            _hover={{
+              bg: isGroup && activeGroupCallInfo ? "#DCFCE7" : "#F1F5F9",
+              color: isGroup && activeGroupCallInfo ? "#059669" : "#2563EB",
+            }}
             icon={<IoCallOutline size={18} />}
             onClick={() => handleStartCall("voice")}
-            aria-label="Voice call"
+            aria-label={
+              isGroup
+                ? activeGroupCallInfo
+                  ? "Join group voice call"
+                  : "Start group voice call"
+                : "Voice call"
+            }
+            title={
+              isGroup
+                ? activeGroupCallInfo
+                  ? "Join group voice call"
+                  : "Start group voice call"
+                : "Start voice call"
+            }
           />
 
           <IconButton
@@ -364,16 +434,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-
-      <CallModal
-        isOpen={isCallOpen}
-        onClose={onCallClose}
-        callType={callType}
-        contact={{
-          name: chatTitle,
-          pic: isGroup ? "" : otherUser?.pic,
-        }}
-      />
 
       <SendInviteModal
         isOpen={isInviteOpen}

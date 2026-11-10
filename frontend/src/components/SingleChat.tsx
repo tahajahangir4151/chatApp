@@ -23,7 +23,7 @@ import {
 } from "@chakra-ui/react";
 import { IoSearchOutline, IoClose, IoSend } from "react-icons/io5";
 import axios from "axios";
-import io from "socket.io-client";
+import { getSocket } from "../config/socket";
 import ChatHeader from "./chat/ChatHeader";
 import ScrollableChats from "./ScrollableChats";
 import ChatInput from "./chat/ChatInput";
@@ -45,16 +45,6 @@ import {
   getMessageSnippet,
   updateDocumentTitle,
 } from "../utils/notificationService";
-
-const ENDPOINT =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  (typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1")
-    ? "http://localhost:8080"
-    : typeof window !== "undefined"
-      ? window.location.origin
-      : "http://localhost:8080");
 
 let socket: any;
 let selectedChatCompare: IChat | null;
@@ -169,24 +159,35 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     [setChats, setSelectedChat]
   );
 
-  // Initialize Socket.io connection
+  // Initialize Socket.io connection using shared socket singleton
   useEffect(() => {
-    socket = io(ENDPOINT);
-    socket.emit("setup", loggedUser);
-    socket.on("connected", () => {
+    socket = getSocket(loggedUser);
+    if (socket?.connected) {
       setSocketConnected(true);
       if (navigator.onLine && currentToken) {
         syncPendingMessages(currentToken, socket);
       }
-    });
-    socket.on("typing", () => setIsTyping(true));
-    socket.on("stop typing", () => setIsTyping(false));
+    }
+    const onConnected = () => {
+      setSocketConnected(true);
+      if (navigator.onLine && currentToken) {
+        syncPendingMessages(currentToken, socket);
+      }
+    };
+    const onTyping = () => setIsTyping(true);
+    const onStopTyping = () => setIsTyping(false);
+
+    socket?.on("connected", onConnected);
+    socket?.on("typing", onTyping);
+    socket?.on("stop typing", onStopTyping);
 
     return () => {
-      socket.disconnect();
+      socket?.off("connected", onConnected);
+      socket?.off("typing", onTyping);
+      socket?.off("stop typing", onStopTyping);
     };
     // eslint-disable-next-line
-  }, []);
+  }, [loggedUser]);
 
   // Fetch messages for active chat (with IndexedDB offline cache & outbox support)
   const fetchMessages = useCallback(

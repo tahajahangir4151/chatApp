@@ -4,6 +4,11 @@ import Head from "next/head";
 import { ChakraProvider } from "@chakra-ui/react";
 import ThemeProvider from "../context/themeContext";
 import ChatProvider from "../context/chatProvider";
+import { CallProvider } from "../context/callContext";
+import IncomingCallModal from "../components/modals/IncomingCallModal";
+import CallModal from "../components/modals/CallModal";
+import GroupCallModal from "../components/modals/GroupCallModal";
+import IncomingGroupCallModal from "../components/modals/IncomingGroupCallModal";
 import { resetDocumentTitle } from "../utils/notificationService";
 import "../components/styles.css";
 import "../App.css";
@@ -45,7 +50,13 @@ export default function App({ Component, pageProps }: AppProps) {
       <ChakraProvider>
         <ThemeProvider>
           <ChatProvider>
-            <Component {...pageProps} />
+            <CallProvider>
+              <Component {...pageProps} />
+              <IncomingCallModal />
+              <CallModal />
+              <IncomingGroupCallModal />
+              <GroupCallModal />
+            </CallProvider>
           </ChatProvider>
         </ThemeProvider>
       </ChakraProvider>

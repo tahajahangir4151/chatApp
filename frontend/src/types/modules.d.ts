@@ -33,3 +33,6 @@ declare module "react-notification-badge" {
   export default class NotificationBadge extends Component<NotificationBadgeProps> { }
 }
 
+declare module "*.css";
+
+
